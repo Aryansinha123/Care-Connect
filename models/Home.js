@@ -1,0 +1,12 @@
+import mongoose from "mongoose";
+
+const HomeSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  type: { type: String, enum: ["orphanage", "oldage"], required: true },
+  location: { type: String, required: true },
+  contact: { type: String, required: true },
+  description: { type: String },
+  imageUrl: { type: String },
+}, { timestamps: true });
+
+export default mongoose.models.Home || mongoose.model("Home", HomeSchema);
