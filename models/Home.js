@@ -7,6 +7,7 @@ const HomeSchema = new mongoose.Schema({
   contact: { type: String, required: true },
   description: { type: String },
   imageUrl: { type: String },
+  events: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],
 }, { timestamps: true });
 
 export default mongoose.models.Home || mongoose.model("Home", HomeSchema);
