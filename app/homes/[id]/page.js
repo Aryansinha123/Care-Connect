@@ -177,7 +177,7 @@ export default function HomeDetailsPage() {
             <span className="text-3xl">🏠</span>
           </div>
           <h2 className="text-2xl font-bold text-red-600 mb-2">Home Not Found</h2>
-          <p className="text-gray-600">The home you're looking for doesn't exist or has been removed.</p>
+          <p className="text-gray-600">The home you&apos;re looking for doesn&apos;t exist or has been removed.</p>
         </div>
       </div>
     );
@@ -311,7 +311,7 @@ export default function HomeDetailsPage() {
                     </h2>
                   </div>
                   <p className="text-gray-600 text-lg font-medium max-w-2xl mx-auto">
-                    Your contributions make a real difference in people's lives. Choose how you'd like to help make an impact.
+                    Your contributions make a real difference in people&apos;s lives. Choose how you&apos;d like to help make an impact.
                   </p>
                 </div>
                 
