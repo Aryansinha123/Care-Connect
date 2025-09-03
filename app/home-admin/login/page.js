@@ -1,79 +1,3 @@
-// "use client";
-
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
-
-// export default function HomeAdminLogin() {
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [error, setError] = useState("");
-//   const router = useRouter();
-
-//   async function handleLogin(e) {
-//     e.preventDefault();
-//     setError("");
-
-//     try {
-//       const res = await fetch("/api/home-admin/login", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ email, password }),
-//       });
-
-//       const data = await res.json();
-
-//       if (data.success) {
-//         // store token (localStorage for now, NextAuth/session later)
-//         localStorage.setItem("homeAdminToken", data.token);
-//         localStorage.setItem("homeAdmin", JSON.stringify(data.admin));
-
-//         router.push("/home-admin/dashboard");
-//       } else {
-//         setError(data.error || "Login failed");
-//       }
-//     } catch (err) {
-//       setError("Something went wrong. Try again.");
-//     }
-//   }
-
-//   return (
-//     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 to-pink-100">
-//       <form
-//         onSubmit={handleLogin}
-//         className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md"
-//       >
-//         <h1 className="text-2xl font-bold text-purple-700 mb-6 text-center">🏠 Home Admin Login</h1>
-
-//         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-//         <input
-//           type="email"
-//           placeholder="Email"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//           className="w-full p-3 border rounded-xl mb-4"
-//           required
-//         />
-
-//         <input
-//           type="password"
-//           placeholder="Password"
-//           value={password}
-//           onChange={(e) => setPassword(e.target.value)}
-//           className="w-full p-3 border rounded-xl mb-4"
-//           required
-//         />
-
-//         <button
-//           type="submit"
-//           className="w-full bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700"
-//         >
-//           Login
-//         </button>
-//       </form>
-//     </div>
-//   );
-// }
 "use client";
 
 import { useState } from "react";
@@ -142,7 +66,7 @@ export default function HomeAdminLogin() {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-r from-purple-400 to-pink-400 mb-6 shadow-lg">
                 <span className="text-3xl">🏠</span>
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent1">
                 Welcome Back
               </h1>
               <p className="text-white/70 text-sm">Sign in to your admin dashboard</p>

@@ -192,15 +192,15 @@ export default function LoginPage() {
         {/* Enhanced Bottom Stats */}
         <div className="mt-12 grid grid-cols-3 gap-4">
           <div className="bg-white/8 backdrop-blur-md rounded-2xl p-5 text-center border border-white/20 group hover:bg-white/15 transition-all duration-300 hover:scale-105">
-            <div className="text-3xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">150k+</div>
+            <div className="text-3xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent1">150k+</div>
             <div className="text-purple-200 text-sm font-medium">Lives Impacted</div>
           </div>
           <div className="bg-white/8 backdrop-blur-md rounded-2xl p-5 text-center border border-white/20 group hover:bg-white/15 transition-all duration-300 hover:scale-105">
-            <div className="text-3xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">500+</div>
+            <div className="text-3xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent1">500+</div>
             <div className="text-purple-200 text-sm font-medium">Care Homes</div>
           </div>
           <div className="bg-white/8 backdrop-blur-md rounded-2xl p-5 text-center border border-white/20 group hover:bg-white/15 transition-all duration-300 hover:scale-105">
-            <div className="text-3xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 bg-gradient-to-r from-cyan-400 to-pink-400 bg-clip-text text-transparent">24/7</div>
+            <div className="text-3xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 bg-gradient-to-r from-cyan-400 to-pink-400 bg-clip-text text-transparent1">24/7</div>
             <div className="text-purple-200 text-sm font-medium">Support</div>
           </div>
         </div>
