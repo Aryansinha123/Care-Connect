@@ -411,7 +411,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-
+import Link from "next/link";
 export default function HomePage() {
   const [search, setSearch] = useState("");
   const [homes, setHomes] = useState([]);
@@ -554,10 +554,10 @@ export default function HomePage() {
             </h1>
           </div>
           <div className="hidden md:flex items-center space-x-8">
-            <a href="/" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group">
+            <Link href="/" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group">
               Home
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
-            </a>
+            </Link>
             <a href="#" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group">
               About
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
