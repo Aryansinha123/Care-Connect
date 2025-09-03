@@ -1,133 +1,9 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { useParams } from "next/navigation";
-
-// export default function HomeDetailsPage() {
-//   const { id } = useParams();
-//   const [home, setHome] = useState(null);
-//   const [requests, setRequests] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     async function fetchData() {
-//       try {
-//         // Fetch home details
-//         const homeRes = await fetch(`/api/homes/${id}`);
-//         if (!homeRes.ok) throw new Error("Failed to fetch home");
-//         const homeData = await homeRes.json();
-//         setHome(homeData);
-
-//         // Fetch requests for this home
-//         const reqRes = await fetch(`/api/homes/${id}/requests`);
-//         if (!reqRes.ok) throw new Error("Failed to fetch requests");
-//         const reqData = await reqRes.json();
-//         setRequests(reqData.requests || []);
-//       } catch (error) {
-//         console.error("Error fetching data:", error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     }
-
-//     if (id) fetchData();
-//   }, [id]);
-
-//   if (loading) {
-//     return (
-//       <div className="flex items-center justify-center min-h-screen text-lg text-gray-600">
-//         Loading home details...
-//       </div>
-//     );
-//   }
-
-//   if (!home) {
-//     return (
-//       <div className="flex items-center justify-center min-h-screen text-red-500">
-//         Home not found
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-white py-10 px-6">
-//       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-//         {/* Left Sidebar - Requests */}
-//         <aside className="lg:col-span-1 bg-white shadow-md rounded-2xl p-6 border border-purple-100">
-//           <h2 className="text-xl font-bold text-purple-700 mb-4">🌟 Featured Requests</h2>
-//           {requests.length > 0 ? (
-//             <ul className="space-y-4">
-//               {requests.map((req, i) => (
-//                 <li
-//                   key={i}
-//                   className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100"
-//                 >
-//                   <p className="text-sm font-semibold text-purple-800">{req.title}</p>
-//                   <p className="text-xs text-gray-600 mt-1">{req.description}</p>
-//                   <span
-//                     className={`mt-2 inline-block text-xs px-3 py-1 rounded-full ${
-//                       req.status === "active"
-//                         ? "bg-green-100 text-green-700"
-//                         : "bg-gray-200 text-gray-600"
-//                     }`}
-//                   >
-//                     {req.status}
-//                   </span>
-//                 </li>
-//               ))}
-//             </ul>
-//           ) : (
-//             <p className="text-sm text-gray-500">No requests yet.</p>
-//           )}
-//         </aside>
-
-//         {/* Main Content */}
-//         <main className="lg:col-span-3 bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
-//           <div className="flex flex-col lg:flex-row gap-8">
-//             <div className="relative w-full lg:w-1/2 h-64 rounded-2xl overflow-hidden shadow-md">
-//               <img
-//                 src={home.imageUrl || "/default-home.jpg"}
-//                 alt={home.name}
-//                 className="w-full h-64 lg:h-80 rounded-2xl object-cover shadow-md"
-//               />
-//             </div>
-//             <div className="flex-1">
-//               <h1 className="text-3xl font-bold text-gray-800 mb-2">{home.name}</h1>
-//               <p className="text-gray-600 mb-3">{home.description}</p>
-//               <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-//                 <p>📍 <span className="font-semibold">{home.location}</span></p>
-//                 <p>👥 Capacity: <span className="font-semibold">{home.capacity || "N/A"}</span></p>
-//                 <p>📞 Contact: <span className="font-semibold">{home.contact}</span></p>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Donation Section */}
-//           <div className="mt-10">
-//             <h2 className="text-2xl font-bold text-purple-700 mb-4">💝 Support {home.name}</h2>
-//             <p className="text-gray-600 mb-6">
-//               Your contributions make a real difference. Choose how you’d like to help:
-//             </p>
-//             <div className="flex flex-col sm:flex-row gap-4">
-//               <button className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:scale-105 transition-all duration-300 shadow-md">
-//                 Donate Money
-//               </button>
-//               <button className="flex-1 py-3 bg-gradient-to-r from-green-400 to-teal-500 text-white rounded-xl font-semibold hover:scale-105 transition-all duration-300 shadow-md">
-//                 Donate Items
-//               </button>
-//             </div>
-//           </div>
-//         </main>
-//       </div>
-//     </div>
-//   );
-// }
 
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-
+import Navbar from "@/app/components/Navbar";
 export default function HomeDetailsPage() {
   const { id } = useParams();
   const [home, setHome] = useState(null);
@@ -184,7 +60,12 @@ export default function HomeDetailsPage() {
   }
 
   return (
+
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="bg-gradient-to-r from-purple-700 to-pink-600 rounded-3xl">
+
+      <Navbar />
+      </div>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -344,5 +225,6 @@ export default function HomeDetailsPage() {
         </div>
       </div>
     </div>
+
   );
 }

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import Navbar from "./components/Navbar";
 export default function HomePage() {
   const [search, setSearch] = useState("");
   const [homes, setHomes] = useState([]);
@@ -133,8 +132,56 @@ export default function HomePage() {
 
       <div className="relative z-10 p-6">
         {/* Navbar */}
+        <nav
+          className={`flex items-center justify-between bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl px-8 py-5 shadow-2xl mb-12 transition-all duration-1000 ${isLoaded ? "translate-y-0 opacity-100" : "-translate-y-10 opacity-0"
+            }`}
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center">
+              <span className="text-white font-bold text-lg">C</span>
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+              CareConnect
+            </h1>
+          </div>
+          <div className="hidden md:flex items-center space-x-8">
+            <Link href="/" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group">
+              Home
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
+            </Link>
+            <a href="#" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group">
+              About
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group">
+              Contact
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
+            </a>
 
-        <Navbar />
+            {/* User Info / Login */}
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-white font-medium">{user.name}</span>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-500 text-white px-4 py-2 rounded-2xl hover:bg-red-600 transition-all duration-300"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => router.push("/user/login")}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2.5 rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
+                >
+                  Login
+                </button>
+              </div>
+            )}
+          </div>
+        </nav>
+
         {/* Hero */}
         <div className={`text-center mb-16 transition-all duration-1000 delay-300 ${isLoaded ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
@@ -219,7 +266,12 @@ export default function HomePage() {
                       <span>{home.capacity || "Contact for details"}</span>
                       <span>{home.contact && `📞 ${home.contact}`}</span>
                     </div>
-                   
+                    {/* <button
+                      onClick={() => !user && router.push("/user/login")}
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-2xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25 group-hover:animate-pulse"
+                    >
+                      Donate Now
+                    </button> */}
                     <button
                       onClick={() => {
                         if (!user) {

@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 import NextAuthSessionProvider from "./components/SessionProvider";
+import Navbar from "./components/Navbar";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -23,7 +24,10 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
+        <NextAuthSessionProvider>
+          
+          {children}
+          </NextAuthSessionProvider>
         <Analytics />
       </body>
     </html>
