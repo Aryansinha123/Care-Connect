@@ -157,6 +157,7 @@ export default function Footer() {
             <p className="text-sm text-purple-200">
               © {new Date().getFullYear()} CareConnect. All rights reserved.
             </p>
+            <p className="text-2xl ">Still under development</p>
             <div className="flex items-center space-x-6 text-sm text-purple-200">
               <span className="flex items-center">
                 <span className="mr-1">🌍</span>
