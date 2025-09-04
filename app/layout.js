@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 import NextAuthSessionProvider from "./components/SessionProvider";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
         <NextAuthSessionProvider>
           
           {children}
+      <Footer />
           </NextAuthSessionProvider>
         <Analytics />
       </body>
