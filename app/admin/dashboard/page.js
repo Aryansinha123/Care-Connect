@@ -1,563 +1,232 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, Save, X, Home, MapPin, FileText, Check, AlertCircle, Info, Phone, Image } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Home, TrendingUp, Users, MapPin, Plus, Eye, Edit3, Trash2, Filter, Search } from 'lucide-react';
 
-// Toast Component
-const Toast = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  const getToastStyles = () => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-500 border-green-400';
-      case 'error':
-        return 'bg-red-500 border-red-400';
-      case 'info':
-        return 'bg-blue-500 border-blue-400';
-      default:
-        return 'bg-gray-500 border-gray-400';
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return <Check className="w-5 h-5" />;
-      case 'error':
-        return <AlertCircle className="w-5 h-5" />;
-      case 'info':
-        return <Info className="w-5 h-5" />;
-      default:
-        return <Info className="w-5 h-5" />;
-    }
-  };
-
-  return (
-    <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 text-white px-4 py-3 rounded-lg shadow-lg border ${getToastStyles()} transform transition-all duration-300 ease-in-out`}>
-      {getIcon()}
-      <span>{message}</span>
-      <button onClick={onClose} className="ml-2 hover:opacity-70">
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-};
-
-export default function AdminDashboard() {
+const AdminDashboard = () => {
   const [homes, setHomes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [toasts, setToasts] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
-  const [form, setForm] = useState({
-    name: "",
-    type: "orphanage",
-    location: "",
-    contact: "",
-    description: "",
-    imageUrl: "",
-  });
-
-  // Toast management
-  const addToast = (message, type = 'info') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  // Fetch all homes
-  const fetchHomes = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/admin/homes");
-      const data = await res.json();
-      if (data.success) {
-        setHomes(data.data);
-      } else {
-        addToast('Failed to fetch homes', 'error');
-      }
-    } catch (error) {
-      console.error("Error fetching homes:", error);
-      addToast('Error fetching homes', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch homes data
   useEffect(() => {
+    const fetchHomes = async () => {
+      try {
+        const response = await fetch('/api/homes'); // Replace with your actual API endpoint
+        const result = await response.json();
+        if (result.success) {
+          setHomes(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching homes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchHomes();
   }, []);
 
-  // Handle form input change
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  // Filter homes based on search and filter
+  const filteredHomes = homes.filter(home => {
+    const matchesSearch = home.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         home.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterType === 'all' || home.type === filterType;
+    return matchesSearch && matchesFilter;
+  });
 
-  // Add or Update home
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!form.name.trim() || !form.location.trim() || !form.contact.trim()) {
-      addToast('Name, location, and contact are required', 'error');
-      return;
+  const stats = [
+    {
+      title: 'Total Homes',
+      value: homes.length,
+      icon: Home,
+      color: 'from-blue-500 to-blue-600',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600'
+    },
+    {
+      title: 'Active Listings',
+      value: homes.filter(h => h.status === 'active').length,
+      icon: TrendingUp,
+      color: 'from-green-500 to-green-600',
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-600'
+    },
+    {
+      title: 'Total Views',
+      value: homes.reduce((sum, h) => sum + (h.views || 0), 0),
+      icon: Eye,
+      color: 'from-purple-500 to-purple-600',
+      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-600'
+    },
+    {
+      title: 'Locations',
+      value: new Set(homes.map(h => h.location)).size,
+      icon: MapPin,
+      color: 'from-orange-500 to-orange-600',
+      bgColor: 'bg-orange-50',
+      textColor: 'text-orange-600'
     }
-
-    try {
-      setActionLoading(true);
-      const url = editingId ? `/api/admin/homes/${editingId}` : "/api/admin/homes";
-      const method = editingId ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      if (data.success || data._id) {
-        setForm({
-          name: "",
-          type: "orphanage",
-          location: "",
-          contact: "",
-          description: "",
-          imageUrl: "",
-        });
-        setEditingId(null);
-        setShowAddForm(false);
-        addToast(editingId ? 'Home updated successfully!' : 'Home added successfully!', 'success');
-        fetchHomes();
-      } else {
-        addToast("Error saving home: " + data.error, 'error');
-      }
-    } catch (error) {
-      console.error("Error saving home:", error);
-      addToast('Error saving home', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Start editing a home
-  const handleEdit = (home) => {
-    setEditingId(home._id);
-    setForm({
-      name: home.name,
-      type: home.type,
-      location: home.location,
-      contact: home.contact,
-      description: home.description,
-      imageUrl: home.imageUrl,
-    });
-    setShowAddForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Cancel editing
-  const cancelEdit = () => {
-    setEditingId(null);
-    setShowAddForm(false);
-    setForm({
-      name: "",
-      type: "orphanage",
-      location: "",
-      contact: "",
-      description: "",
-      imageUrl: "",
-    });
-  };
-
-  // Delete home
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
-    
-    try {
-      setActionLoading(true);
-      const res = await fetch(`/api/admin/homes/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (data.success) {
-        addToast('Home deleted successfully!', 'success');
-        fetchHomes();
-      } else {
-        addToast("Error deleting home: " + data.error, 'error');
-      }
-    } catch (error) {
-      console.error("Error deleting home:", error);
-      addToast('Error deleting home', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const getTypeColor = (type) => {
-    return type === 'orphanage' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
-  };
-
-  const getTypeIcon = (type) => {
-    return type === 'orphanage' ? '👶' : '👴';
-  };
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Toast Container */}
-      <div className="fixed top-0 right-0 z-50 p-4 space-y-2">
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Home className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Homes Management</h1>
-                <p className="text-sm text-gray-500">Manage orphanages and old age homes</p>
-              </div>
+      <div className="bg-white/80 backdrop-blur-lg border-b border-white/20 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                Admin Dashboard
+              </h1>
+              <p className="text-slate-600 mt-1">Manage your home listings and analytics</p>
             </div>
-            
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              {editingId ? 'Cancel Edit' : 'Add New Home'}
+            <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
+              <Plus size={20} />
+              Add New Home
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Add/Edit New Home Form */}
-        {showAddForm && (
-          <div className="bg-white rounded-xl shadow-sm border mb-8 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {editingId ? 'Edit Home' : 'Add New Home'}
-              </h2>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Home Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Enter home name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Type *
-                  </label>
-                  <select
-                    name="type"
-                    value={form.type}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  >
-                    <option value="orphanage">Orphanage</option>
-                    <option value="oldage">Old Age Home</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Location *
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    placeholder="Enter location"
-                    value={form.location}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Contact *
-                  </label>
-                  <input
-                    type="text"
-                    name="contact"
-                    placeholder="Enter contact information"
-                    value={form.contact}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Image URL
-                  </label>
-                  <input
-                    type="text"
-                    name="imageUrl"
-                    placeholder="Enter image URL"
-                    value={form.imageUrl}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-black mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  placeholder="Enter description"
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                />
-              </div>
-              
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-                >
-                  {actionLoading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : editingId ? (
-                    <Save className="w-4 h-4" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {actionLoading ? (editingId ? 'Updating...' : 'Adding...') : (editingId ? 'Update Home' : 'Add Home')}
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading ? (
-          <div className="bg-white rounded-xl shadow-sm border p-8">
-            <div className="flex items-center justify-center">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <span className="text-gray-600">Loading homes...</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-sm border p-6">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {stats.map((stat, index) => {
+            const IconComponent = stat.icon;
+            return (
+              <div
+                key={index}
+                className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-white/20"
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Homes</p>
-                    <p className="text-2xl font-bold text-gray-900">{homes.length}</p>
+                    <p className="text-slate-600 text-sm font-medium">{stat.title}</p>
+                    <p className="text-3xl font-bold text-slate-800 mt-1">
+                      {loading ? (
+                        <div className="w-16 h-8 bg-slate-200 rounded animate-pulse"></div>
+                      ) : (
+                        stat.value.toLocaleString()
+                      )}
+                    </p>
                   </div>
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <Home className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Orphanages</p>
-                    <p className="text-2xl font-bold text-gray-900">{homes.filter(h => h.type === 'orphanage').length}</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <span className="text-2xl">👶</span>
+                  <div className={`p-3 rounded-xl ${stat.bgColor}`}>
+                    <IconComponent className={`w-6 h-6 ${stat.textColor}`} />
                   </div>
                 </div>
+                <div className={`w-full h-1 bg-gradient-to-r ${stat.color} rounded-full mt-4 opacity-60`}></div>
               </div>
-              
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Old Age Homes</p>
-                    <p className="text-2xl font-bold text-gray-900">{homes.filter(h => h.type === 'oldage').length}</p>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <span className="text-2xl">👴</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Locations</p>
-                    <p className="text-2xl font-bold text-gray-900">{new Set(homes.map(h => h.location)).size}</p>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-lg">
-                    <MapPin className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-              </div>
+            );
+          })}
+        </div>
+
+        {/* Search and Filter */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg mb-8 border border-white/20">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search homes by title or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+              />
             </div>
-
-            {/* Homes List */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="px-6 py-4 border-b bg-gray-50">
-                <h2 className="text-lg font-semibold text-gray-900">Property Listings</h2>
-                <p className="text-sm text-gray-600">Manage all your property listings</p>
-              </div>
-              
-              {homes.length === 0 ? (
-                <div className="p-12 text-center">
-                  <Home className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No homes found</h3>
-                  <p className="text-gray-600 mb-4">Get started by adding your first property listing.</p>
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Your First Home
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200">
-                  {homes.map((home) => (
-                    <div key={home._id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
-                      <div className="flex items-start gap-4">
-                        {/* Image */}
-                        <div className="flex-shrink-0">
-                          {home.imageUrl ? (
-                            <img
-                              src={home.imageUrl}
-                              alt={home.name}
-                              className="w-24 h-24 object-cover rounded-lg border border-gray-200"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div 
-                            className={`w-24 h-24 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center ${home.imageUrl ? 'hidden' : 'flex'}`}
-                          >
-                            <Image className="w-8 h-8 text-gray-400" />
-                          </div>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                                  <span className="text-lg">{getTypeIcon(home.type)}</span>
-                                  {home.name}
-                                </h3>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(home.type)}`}>
-                                  {home.type === 'orphanage' ? 'Orphanage' : 'Old Age Home'}
-                                </span>
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <MapPin className="w-4 h-4 text-gray-500" />
-                                  <span>{home.location}</span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <Phone className="w-4 h-4 text-gray-500" />
-                                  <span>{home.contact}</span>
-                                </div>
-                                
-                                {home.description && (
-                                  <div className="flex items-start gap-2 text-black mt-3">
-                                    <FileText className="w-4 h-4 mt-0.5 text-gray-500" />
-                                    <p className="leading-relaxed text-sm">{home.description}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-3 pt-4 border-t border-gray-100">
-                            <button
-                              onClick={() => handleEdit(home)}
-                              disabled={actionLoading}
-                              className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white px-3 py-2 rounded-lg transition-colors duration-200 text-sm"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(home._id, home.name)}
-                              disabled={actionLoading}
-                              className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg transition-colors duration-200 text-sm"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Loading Overlay */}
-      {actionLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-40">
-          <div className="bg-white rounded-lg p-6 shadow-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-black">Processing...</span>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="pl-10 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white min-w-[150px]"
+              >
+                <option value="all">All Types</option>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="villa">Villa</option>
+                <option value="condo">Condo</option>
+              </select>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Homes List */}
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <Home className="w-5 h-5" />
+              Recent Homes ({filteredHomes.length})
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="p-6">
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center space-x-4 animate-pulse">
+                    <div className="w-16 h-16 bg-slate-200 rounded-lg"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                      <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                    </div>
+                    <div className="w-20 h-8 bg-slate-200 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : filteredHomes.length === 0 ? (
+            <div className="p-12 text-center">
+              <Home className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-600 mb-2">No homes found</h3>
+              <p className="text-slate-500">
+                {homes.length === 0 
+                  ? "Start by adding your first home listing." 
+                  : "Try adjusting your search or filter criteria."}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200">
+              {filteredHomes.slice(0, 10).map((home, index) => (
+                <div key={home._id || index} className="p-6 hover:bg-white/50 transition-colors duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <Home className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">
+                          {home.title || `Home #${index + 1}`}
+                        </h3>
+                        <p className="text-slate-600 text-sm flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          {home.location || 'Location not specified'}
+                        </p>
+                        <p className="text-slate-500 text-xs mt-1">
+                          {home.type || 'Type not specified'} • {home.status || 'Active'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default AdminDashboard;
