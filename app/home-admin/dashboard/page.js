@@ -190,7 +190,7 @@ export default function HomeAdminDashboard() {
 
             fetchRequests(adminData.home._id, token);
         }
-    }, []);
+    }, [router]);
 
     async function handleCreateRequest(e) {
         e.preventDefault();

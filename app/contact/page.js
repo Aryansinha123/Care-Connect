@@ -43,7 +43,7 @@ export default function ContactPage() {
             <div className="relative z-10">
               <h1 className="text-5xl font-bold mb-6 animate-slideInLeft">Get in Touch</h1>
               <p className="text-lg mb-10 opacity-90 animate-slideInLeft-delayed">
-                We’re here to help — reach out anytime!
+                We&apos;re here to help — reach out anytime!
               </p>
 
               <div className="space-y-6">
@@ -51,7 +51,7 @@ export default function ContactPage() {
                   <Mail className="w-6 h-6 mt-1 flex-shrink-0" />
                   <div>
                     <strong className="block">Email</strong>
-                    <span className="opacity-90">hello@company.com</span>
+                    <span className="opacity-90">CareConnect@company.com</span>
                   </div>
                 </div>
 
@@ -59,7 +59,7 @@ export default function ContactPage() {
                   <Phone className="w-6 h-6 mt-1 flex-shrink-0" />
                   <div>
                     <strong className="block">Phone</strong>
-                    <span className="opacity-90">+1 (555) 123-4567</span>
+                    <span className="opacity-90">+91 8887014665</span>
                   </div>
                 </div>
 
@@ -85,7 +85,7 @@ export default function ContactPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="animate-slideInRight-delayed">
+              <div className="animate-slideInRight-delayed text-black">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Your Name</label>
                 <input
                   type="text"
@@ -105,7 +105,7 @@ export default function ContactPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none text-black"
                 />
               </div>
 
@@ -117,7 +117,7 @@ export default function ContactPage() {
                   value={formData.subject}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none text-black"
                 />
               </div>
 
@@ -129,7 +129,7 @@ export default function ContactPage() {
                   onChange={handleChange}
                   required
                   rows="5"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none resize-vertical"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none resize-vertical text-black"
                 />
               </div>
 

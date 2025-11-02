@@ -164,7 +164,7 @@ export default function Navbar() {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
           </a>
           <a
-            href="#"
+            href="/contact"
             className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group"
           >
             Contact
