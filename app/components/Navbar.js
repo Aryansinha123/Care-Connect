@@ -135,7 +135,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl px-6 py-4 shadow-2xl mb-8">
+    <nav className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl px-6 py-4 shadow-2xl w-full mb-4">
       <div className="flex justify-between items-center max-w-7xl mx-auto">
         {/* Logo + Title */}
         <div className="flex items-center space-x-3">
@@ -156,20 +156,20 @@ export default function Navbar() {
             Home
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
           </Link>
-          <a
-            href="#"
+          <Link
+            href="/about"
             className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group"
           >
             About
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/contact"
             className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105 relative group"
           >
             Contact
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-purple-400 transition-all duration-300 group-hover:w-full"></span>
-          </a>
+          </Link>
 
           {/* User Info / Login */}
           {user ? (
@@ -211,20 +211,20 @@ export default function Navbar() {
           >
             Home
           </Link>
-          <a
-            href="#"
+          <Link
+            href="/about"
             className="block text-white/90 hover:text-white"
             onClick={() => setMenuOpen(false)}
           >
             About
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            href="/contact"
             className="block text-white/90 hover:text-white"
             onClick={() => setMenuOpen(false)}
           >
             Contact
-          </a>
+          </Link>
 
           {/* User Info / Login in Mobile */}
           {user ? (

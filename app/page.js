@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import Navbar from "./components/Navbar";
 export default function HomePage() {
   const [search, setSearch] = useState("");
   const [homes, setHomes] = useState([]);
@@ -132,9 +131,6 @@ export default function HomePage() {
       )}
 
       <div className="relative z-10 p-6">
-        {/* Navbar */}
-
-        <Navbar />
         {/* Hero */}
         <div className={`text-center mb-16 transition-all duration-1000 delay-300 ${isLoaded ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
