@@ -163,11 +163,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { verifyHomeAdminToken } from "@/lib/authUtils";
 
 export default function HomeAdminDashboard() {
     const [admin, setAdmin] = useState(null);
     const [requests, setRequests] = useState([]);
+    const [donations, setDonations] = useState([]);
     const [newRequest, setNewRequest] = useState({ title: "", description: "" });
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [donationsLoading, setDonationsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'donations'
     const router = useRouter();
 
     async function fetchRequests(id, token) {
@@ -178,19 +183,86 @@ export default function HomeAdminDashboard() {
         if (data.success) setRequests(data.requests);
     }
 
+    async function fetchDonations(token) {
+        setDonationsLoading(true);
+        try {
+            const res = await fetch(`/api/donations`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (data.success) setDonations(data.donations || []);
+        } catch (error) {
+            console.error("Error fetching donations:", error);
+        } finally {
+            setDonationsLoading(false);
+        }
+    }
+
+    async function updateDonationStatus(donationId, newStatus) {
+        try {
+            const token = localStorage.getItem("homeAdminToken");
+            const res = await fetch(`/api/donations/${donationId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Update local state
+                setDonations((prev) =>
+                    prev.map((donation) =>
+                        donation._id === donationId
+                            ? { ...donation, status: newStatus }
+                            : donation
+                    )
+                );
+            } else {
+                alert(data.message || "Failed to update donation status");
+            }
+        } catch (error) {
+            console.error("Error updating donation status:", error);
+            alert("An error occurred while updating donation status");
+        }
+    }
+
     useEffect(() => {
+        // Verify token validity
+        if (!verifyHomeAdminToken()) {
+            router.push("/home-admin/login");
+            return;
+        }
+
         const storedAdmin = localStorage.getItem("homeAdmin");
         const token = localStorage.getItem("homeAdminToken");
 
         if (!storedAdmin || !token) {
             router.push("/home-admin/login");
-        } else {
+            return;
+        }
+
+        try {
             const adminData = JSON.parse(storedAdmin);
             setAdmin(adminData);
-
+            setIsAuthenticated(true);
             fetchRequests(adminData.home._id, token);
+        } catch (error) {
+            console.error("Error parsing admin data:", error);
+            router.push("/home-admin/login");
         }
     }, [router]);
+
+    // Fetch donations when donations tab is active
+    useEffect(() => {
+        if (isAuthenticated && activeTab === 'donations') {
+            const token = localStorage.getItem("homeAdminToken");
+            if (token) {
+                fetchDonations(token);
+            }
+        }
+    }, [isAuthenticated, activeTab]);
 
     async function handleCreateRequest(e) {
         e.preventDefault();
@@ -211,7 +283,17 @@ export default function HomeAdminDashboard() {
         }
     }
 
-    if (!admin) return null;
+    // Show loading state while checking authentication
+    if (!isAuthenticated || !admin) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Verifying authentication...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
@@ -224,6 +306,31 @@ export default function HomeAdminDashboard() {
                     <p className="text-gray-600 text-lg">Manage your home and service requests</p>
                 </div>
 
+                {/* Tabs */}
+                <div className="flex gap-4 mb-6 border-b border-purple-200">
+                    <button
+                        onClick={() => setActiveTab('requests')}
+                        className={`px-6 py-3 font-semibold transition-colors duration-200 ${
+                            activeTab === 'requests'
+                                ? 'text-purple-600 border-b-2 border-purple-600'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Requests
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('donations')}
+                        className={`px-6 py-3 font-semibold transition-colors duration-200 ${
+                            activeTab === 'donations'
+                                ? 'text-purple-600 border-b-2 border-purple-600'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Donations
+                    </button>
+                </div>
+
+                {activeTab === 'requests' ? (
                 <div className="grid lg:grid-cols-3 gap-8">
                     {/* Left Column - Admin & Home Info */}
                     <div className="lg:col-span-1 space-y-6">
@@ -368,6 +475,103 @@ export default function HomeAdminDashboard() {
                         </div>
                     </div>
                 </div>
+                ) : (
+                    /* Donations Tab */
+                    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center">
+                                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center mr-4">
+                                    <span className="text-xl text-white">🎁</span>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">Item Donations</h3>
+                            </div>
+                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                                {donations.length} {donations.length === 1 ? 'Donation' : 'Donations'}
+                            </span>
+                        </div>
+
+                        {donationsLoading ? (
+                            <div className="text-center py-12">
+                                <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                <p className="text-gray-600">Loading donations...</p>
+                            </div>
+                        ) : donations.length > 0 ? (
+                            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                {donations.map((donation) => (
+                                    <div
+                                        key={donation._id}
+                                        className="group p-5 bg-gradient-to-r from-green-50 to-teal-50 rounded-2xl border-2 border-green-100 hover:border-green-300 transition-all duration-200 hover:shadow-lg"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            {donation.imageUrl && (
+                                                <img
+                                                    src={donation.imageUrl}
+                                                    alt={donation.itemName}
+                                                    className="w-20 h-20 object-cover rounded-xl border-2 border-green-200"
+                                                />
+                                            )}
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <h4 className="font-bold text-green-800 text-lg group-hover:text-green-900">
+                                                            {donation.itemName}
+                                                        </h4>
+                                                        <p className="text-sm text-gray-600 mt-1">
+                                                            Category: <span className="font-medium">{donation.category}</span> • 
+                                                            Quantity: <span className="font-medium">{donation.quantity}</span>
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        <select
+                                                            value={donation.status}
+                                                            onChange={(e) => updateDonationStatus(donation._id, e.target.value)}
+                                                            className={`px-3 py-1 text-xs font-semibold rounded-full border-2 ${
+                                                                donation.status === 'Completed'
+                                                                    ? 'bg-green-100 text-green-700 border-green-200'
+                                                                    : donation.status === 'Accepted'
+                                                                    ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                                                    : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                                            } focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                                                        >
+                                                            <option value="Pending">Pending</option>
+                                                            <option value="Accepted">Accepted</option>
+                                                            <option value="Completed">Completed</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <p className="text-gray-700 text-sm leading-relaxed mb-3">{donation.description}</p>
+                                                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                                                    <span className="flex items-center">
+                                                        <span className="mr-1">📍</span>
+                                                        {donation.pickupAddress}
+                                                    </span>
+                                                    {donation.donorName && (
+                                                        <span className="flex items-center">
+                                                            <span className="mr-1">👤</span>
+                                                            {donation.donorName}
+                                                        </span>
+                                                    )}
+                                                    <span className="flex items-center">
+                                                        <span className="mr-1">📅</span>
+                                                        {new Date(donation.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12">
+                                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <span className="text-3xl text-gray-400">🎁</span>
+                                </div>
+                                <p className="text-gray-500 text-lg mb-2">No donations yet</p>
+                                <p className="text-gray-400 text-sm">Donations for your home will appear here</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

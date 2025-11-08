@@ -182,7 +182,10 @@ export default function HomeDetailsPage({ params }) {
                   💰 Donate Money
                 </button>
                 
-                <button className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-2xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5">
+                <button 
+                  onClick={() => router.push(`/homes/${id}/donate-item`)}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-2xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
+                >
                   📦 Donate Items
                 </button>
                 
