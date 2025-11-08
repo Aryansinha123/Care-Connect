@@ -1,21 +1,26 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Home, TrendingUp, Users, MapPin, Plus, Eye, Edit3, Trash2, Filter, Search, Gift } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { Home, TrendingUp, Users, MapPin, Plus, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, LogOut, LayoutDashboard, UserPlus, Building2 } from 'lucide-react';
 import { verifyAdminToken } from '@/lib/authUtils';
 
 const AdminDashboard = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const [homes, setHomes] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [donationsLoading, setDonationsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminName, setAdminName] = useState('Admin');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [activeTab, setActiveTab] = useState('homes'); // 'homes' or 'donations'
+  const [activeTab, setActiveTab] = useState('homes'); // 'homes', 'donations', or 'users'
 
-  // Check authentication on mount
+  // Check authentication on mount and get admin name
   useEffect(() => {
     const checkAuth = () => {
       if (!verifyAdminToken()) {
@@ -23,6 +28,17 @@ const AdminDashboard = () => {
         return;
       }
       setIsAuthenticated(true);
+
+      // Get admin name from token
+      const token = localStorage.getItem('admin_token');
+      if (token) {
+        try {
+          const decoded = JSON.parse(atob(token.split('.')[1]));
+          setAdminName(decoded.name || 'Admin');
+        } catch {
+          setAdminName('Admin');
+        }
+      }
     };
 
     checkAuth();
@@ -50,31 +66,56 @@ const AdminDashboard = () => {
   }, [isAuthenticated]);
 
   // Fetch donations data
+  const fetchDonations = useCallback(async () => {
+    setDonationsLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('/api/donations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setDonations(result.donations || []);
+      }
+    } catch (error) {
+      console.error('Error fetching donations:', error);
+    } finally {
+      setDonationsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated || activeTab !== 'donations') return;
-
-    const fetchDonations = async () => {
-      setDonationsLoading(true);
-      try {
-        const token = localStorage.getItem('admin_token');
-        const response = await fetch('/api/donations', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        const result = await response.json();
-        if (result.success) {
-          setDonations(result.donations || []);
-        }
-      } catch (error) {
-        console.error('Error fetching donations:', error);
-      } finally {
-        setDonationsLoading(false);
-      }
-    };
-
     fetchDonations();
-  }, [isAuthenticated, activeTab]);
+  }, [isAuthenticated, activeTab, fetchDonations]);
+
+  // Fetch users data
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setUsers(result.users || []);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 'users') return;
+    fetchUsers();
+  }, [isAuthenticated, activeTab, fetchUsers]);
 
   // Filter homes based on search and filter
   const filteredHomes = homes.filter(home => {
@@ -94,12 +135,12 @@ const AdminDashboard = () => {
       textColor: 'text-blue-600'
     },
     {
-      title: 'Active Listings',
-      value: homes.filter(h => h.status === 'active').length,
-      icon: TrendingUp,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600'
+      title: 'Total Users',
+      value: users.length,
+      icon: Users,
+      color: 'from-indigo-500 to-indigo-600',
+      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-600'
     },
     {
       title: 'Total Donations',
@@ -131,50 +172,250 @@ const AdminDashboard = () => {
     );
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    router.push('/admin/login');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-white/20 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                Admin Dashboard
-              </h1>
-              <p className="text-slate-600 mt-1">Manage your home listings and analytics</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
+      {/* Enhanced Unified Sidebar */}
+      <div className="w-80 bg-gradient-to-b from-white via-white to-slate-50 backdrop-blur-xl border-r border-slate-200/50 sticky top-0 h-screen shadow-2xl flex flex-col">
+        {/* Sidebar Header with CareConnect Branding */}
+        <div className="p-6 border-b border-slate-200/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-xl">C</span>
             </div>
-            <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2">
-              <Plus size={20} />
-              Add New Home
-            </button>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                CareConnect
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">Admin Dashboard</p>
+            </div>
           </div>
+          
+          {/* User Info */}
+          <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl border border-slate-200/50">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+              {adminName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-800">Welcome</p>
+              <p className="text-xs text-blue-600 font-medium">{adminName}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Main Menu</p>
+          
+          {/* Dashboard Link - Current Page */}
+          <Link
+            href="/admin/dashboard"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+              pathname === '/admin/dashboard'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
+            }`}
+          >
+            <LayoutDashboard className={`w-5 h-5 ${pathname === '/admin/dashboard' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
+            <span>Dashboard</span>
+            {pathname === '/admin/dashboard' && (
+              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+            )}
+          </Link>
+
+          {/* Manage Homes Link */}
+          <Link
+            href="/admin/create-home"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+              pathname === '/admin/create-home'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
+            }`}
+          >
+            <Home className={`w-5 h-5 ${pathname === '/admin/create-home' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
+            <span>Manage Homes</span>
+            {pathname === '/admin/create-home' && (
+              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+            )}
+          </Link>
+
+          {/* Create Admin Link */}
+          <Link
+            href="/admin/create-admin"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+              pathname === '/admin/create-admin'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
+            }`}
+          >
+            <UserPlus className={`w-5 h-5 ${pathname === '/admin/create-admin' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
+            <span>Create Admin</span>
+            {pathname === '/admin/create-admin' && (
+              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+            )}
+          </Link>
+
+          {/* Home Admin List Link */}
+          <Link
+            href="/admin/homeadminsList"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+              pathname === '/admin/homeadminsList'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
+            }`}
+          >
+            <Building2 className={`w-5 h-5 ${pathname === '/admin/homeadminsList' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
+            <span>Home Admin List</span>
+            {pathname === '/admin/homeadminsList' && (
+              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+            )}
+          </Link>
+
+          {/* Dashboard Tabs Section - Only show on dashboard page */}
+          {pathname === '/admin/dashboard' && (
+            <>
+              <div className="pt-4 mt-4 border-t border-slate-200/50">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Dashboard Views</p>
+                
+                <button
+                  onClick={() => setActiveTab('homes')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+                    activeTab === 'homes'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
+                  }`}
+                >
+                  <Home className={`w-5 h-5 ${activeTab === 'homes' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
+                  <span>Homes</span>
+                  {activeTab === 'homes' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('donations')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+                    activeTab === 'donations'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
+                  }`}
+                >
+                  <Gift className={`w-5 h-5 ${activeTab === 'donations' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
+                  <span>Donations</span>
+                  {activeTab === 'donations' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+                    activeTab === 'users'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
+                  }`}
+                >
+                  <UserCheck className={`w-5 h-5 ${activeTab === 'users' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
+                  <span>Users</span>
+                  {activeTab === 'users' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Quick Actions Section */}
+          <div className="pt-6 mt-6 border-t border-slate-200/50">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Quick Actions</p>
+            <Link
+              href="/admin/create-home"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700 transition-all duration-200 group"
+            >
+              <Plus className="w-5 h-5 text-slate-500 group-hover:text-green-600" />
+              <span>Add New Home</span>
+            </Link>
+          </div>
+
+          {/* Stats Summary */}
+          <div className="pt-6 mt-6 border-t border-slate-200/50">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Overview</p>
+            <div className="space-y-2 px-4">
+              <div className="flex items-center justify-between p-3 bg-blue-50/70 rounded-lg border border-blue-100/50">
+                <div className="flex items-center gap-2">
+                  <Home className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm text-slate-700 font-medium">Homes</span>
+                </div>
+                <span className="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">{homes.length}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-purple-50/70 rounded-lg border border-purple-100/50">
+                <div className="flex items-center gap-2">
+                  <Gift className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm text-slate-700 font-medium">Donations</span>
+                </div>
+                <span className="text-sm font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded-full">{donations.length}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-indigo-50/70 rounded-lg border border-indigo-100/50">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm text-slate-700 font-medium">Users</span>
+                </div>
+                <span className="text-sm font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">{users.length}</span>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-200/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 group border border-slate-200/50 hover:border-red-200"
+          >
+            <LogOut className="w-5 h-5 text-slate-500 group-hover:text-red-600" />
+            <span>Logout</span>
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-slate-200">
-          <button
-            onClick={() => setActiveTab('homes')}
-            className={`px-6 py-3 font-semibold transition-colors duration-200 ${
-              activeTab === 'homes'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-600 hover:text-slate-800'
-            }`}
-          >
-            Homes
-          </button>
-          <button
-            onClick={() => setActiveTab('donations')}
-            className={`px-6 py-3 font-semibold transition-colors duration-200 ${
-              activeTab === 'donations'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-600 hover:text-slate-800'
-            }`}
-          >
-            Donations
-          </button>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-10 shadow-sm">
+          <div className="px-8 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {activeTab === 'homes' && '🏠 Homes Management'}
+                  {activeTab === 'donations' && '🎁 Donations'}
+                  {activeTab === 'users' && '👥 Users Management'}
+                </h1>
+                <p className="text-slate-600 text-sm mt-2 font-medium">
+                  {activeTab === 'homes' && 'Manage and monitor all home listings'}
+                  {activeTab === 'donations' && 'View and manage all item donations'}
+                  {activeTab === 'users' && 'View and manage all registered users'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm text-slate-500">Welcome back,</p>
+                  <p className="text-sm font-semibold text-blue-600">{adminName}</p>
+                </div>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
+                  {adminName.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-8 py-8">
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -206,7 +447,7 @@ const AdminDashboard = () => {
           })}
         </div>
 
-        {activeTab === 'homes' ? (
+        {activeTab === 'homes' && (
           <>
             {/* Search and Filter */}
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg mb-8 border border-white/20">
@@ -239,87 +480,100 @@ const AdminDashboard = () => {
             </div>
 
             {/* Homes List */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-          <div className="p-6 border-b border-slate-200">
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <Home className="w-5 h-5" />
-              Recent Homes ({filteredHomes.length})
-            </h2>
-          </div>
-
-          {loading ? (
-            <div className="p-6">
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center space-x-4 animate-pulse">
-                    <div className="w-16 h-16 bg-slate-200 rounded-lg"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-slate-200 rounded w-1/3"></div>
-                      <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                    </div>
-                    <div className="w-20 h-8 bg-slate-200 rounded"></div>
-                  </div>
-                ))}
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+              <div className="p-6 border-b border-slate-200">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                  <Home className="w-5 h-5" />
+                  Recent Homes ({filteredHomes.length})
+                </h2>
               </div>
-            </div>
-          ) : filteredHomes.length === 0 ? (
-            <div className="p-12 text-center">
-              <Home className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-600 mb-2">No homes found</h3>
-              <p className="text-slate-500">
-                {homes.length === 0 
-                  ? "Start by adding your first home listing." 
-                  : "Try adjusting your search or filter criteria."}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {filteredHomes.slice(0, 10).map((home, index) => (
-                <div key={home._id || index} className="p-6 hover:bg-white/50 transition-colors duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <Home className="w-8 h-8 text-white" />
+
+              {loading ? (
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center space-x-4 animate-pulse">
+                        <div className="w-16 h-16 bg-slate-200 rounded-lg"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                          <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                        </div>
+                        <div className="w-20 h-8 bg-slate-200 rounded"></div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-800">
-                          {home.title || `Home #${index + 1}`}
-                        </h3>
-                        <p className="text-slate-600 text-sm flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {home.location || 'Location not specified'}
-                        </p>
-                        <p className="text-slate-500 text-xs mt-1">
-                          {home.type || 'Type not specified'} • {home.status || 'Active'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200">
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              ) : filteredHomes.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Home className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-600 mb-2">No homes found</h3>
+                  <p className="text-slate-500">
+                    {homes.length === 0 
+                      ? "Start by adding your first home listing." 
+                      : "Try adjusting your search or filter criteria."}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {filteredHomes.slice(0, 10).map((home, index) => (
+                    <div key={home._id || index} className="p-6 hover:bg-white/50 transition-colors duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <Home className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-800">
+                              {home.title || `Home #${index + 1}`}
+                            </h3>
+                            <p className="text-slate-600 text-sm flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {home.location || 'Location not specified'}
+                            </p>
+                            <p className="text-slate-500 text-xs mt-1">
+                              {home.type || 'Type not specified'} • {home.status || 'Active'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-slate-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
           </>
-        ) : (
-          /* Donations List */
+        )}
+
+        {activeTab === 'donations' && (
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
             <div className="p-6 border-b border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-                <Gift className="w-5 h-5" />
-                All Item Donations ({donations.length})
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  All Item Donations ({donations.length})
+                </h2>
+                <button
+                  onClick={fetchDonations}
+                  disabled={donationsLoading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                >
+                  <RefreshCw 
+                    className={`w-4 h-4 ${donationsLoading ? 'animate-spin' : ''}`} 
+                  />
+                  {donationsLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
             </div>
 
             {donationsLoading ? (
@@ -393,6 +647,102 @@ const AdminDashboard = () => {
             )}
           </div>
         )}
+
+        {activeTab === 'users' && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5" />
+                  All Users ({users.length})
+                </h2>
+                <button
+                  onClick={fetchUsers}
+                  disabled={usersLoading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                >
+                  <RefreshCw 
+                    className={`w-4 h-4 ${usersLoading ? 'animate-spin' : ''}`} 
+                  />
+                  {usersLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {usersLoading ? (
+              <div className="p-6">
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center space-x-4 animate-pulse">
+                      <div className="w-16 h-16 bg-slate-200 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                        <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="p-12 text-center">
+                <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-600 mb-2">No users found</h3>
+                <p className="text-slate-500">Users will appear here when they register.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-200">
+                {users.map((user) => (
+                  <div key={user._id} className="p-6 hover:bg-white/50 transition-colors duration-200">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                        {user.image ? (
+                          <img
+                            src={user.image}
+                            alt={user.name}
+                            className="w-16 h-16 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span>{user.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-semibold text-slate-800 text-lg">{user.name || 'Unknown User'}</h3>
+                            <p className="text-sm text-slate-600 mt-1 flex items-center gap-2">
+                              <span>📧 {user.email}</span>
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <span>🔐</span>
+                                {user.provider === 'google' ? 'Google Account' : 'Email Account'}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span>📅</span>
+                                Joined: {new Date(user.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              user.provider === 'google'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            }`}
+                          >
+                            {user.provider === 'google' ? 'Google' : 'Email'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+          </div>
+        </div>
       </div>
     </div>
   );

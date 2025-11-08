@@ -8,6 +8,7 @@ export default function DonateItemPage() {
   const id = params.id;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [homeLoading, setHomeLoading] = useState(true);
   const [home, setHome] = useState(null);
   const [formData, setFormData] = useState({
     category: '',
@@ -23,15 +24,24 @@ export default function DonateItemPage() {
   // Fetch home details
   useEffect(() => {
     async function fetchHome() {
+      setHomeLoading(true);
       try {
         const res = await fetch(`/api/homes/${id}`);
         const homeData = await res.json();
-        setHome(homeData);
+        if (res.ok) {
+          setHome(homeData);
+        } else {
+          console.error("Error fetching home:", homeData.error);
+        }
       } catch (error) {
         console.error("Error fetching home:", error);
+      } finally {
+        setHomeLoading(false);
       }
     }
-    fetchHome();
+    if (id) {
+      fetchHome();
+    }
   }, [id]);
 
   const handleChange = (e) => {
@@ -129,16 +139,71 @@ export default function DonateItemPage() {
       {/* <Navbar /> */}
       
       <div className="container mx-auto px-4 py-12 max-w-4xl">
+        {/* Home Info Card */}
+        {homeLoading ? (
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20 mb-8">
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading home details...</p>
+              </div>
+            </div>
+          </div>
+        ) : home && (
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20 mb-8">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Home Image */}
+              {home.imageUrl ? (
+                <div className="w-full md:w-48 h-48 rounded-2xl overflow-hidden border-4 border-purple-200 shadow-lg flex-shrink-0">
+                  <img
+                    src={home.imageUrl}
+                    alt={home.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-full md:w-48 h-48 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center border-4 border-purple-200 shadow-lg flex-shrink-0">
+                  <span className="text-6xl text-white">🏡</span>
+                </div>
+              )}
+              
+              {/* Home Details */}
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-3">
+                  {home.name}
+                </h2>
+                {home.description && (
+                  <p className="text-gray-600 text-lg mb-4 leading-relaxed">
+                    {home.description}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                  {home.location && (
+                    <div className="flex items-center text-gray-600">
+                      <span className="mr-2">📍</span>
+                      <span className="text-sm font-medium">{home.location}</span>
+                    </div>
+                  )}
+                  {home.type && (
+                    <div className="flex items-center text-gray-600">
+                      <span className="mr-2">🏠</span>
+                      <span className="text-sm font-medium capitalize">{home.type}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
             Donate Items
           </h1>
-          {home && (
-            <p className="text-gray-600 text-lg">
-              Supporting {home.name}
-            </p>
-          )}
+          <p className="text-gray-600 text-lg">
+            {home ? `Your donation will help ${home.name}` : 'Make a difference with your donation'}
+          </p>
           <div className="w-32 h-1 bg-gradient-to-r from-purple-400 to-blue-400 mx-auto rounded-full mt-4"></div>
         </div>
 
