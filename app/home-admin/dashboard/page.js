@@ -285,7 +285,7 @@ export default function HomeAdminDashboard() {
                                         placeholder="Enter request title..."
                                         value={newRequest.title}
                                         onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })}
-                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm"
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
                                         required
                                     />
                                 </div>
@@ -295,7 +295,7 @@ export default function HomeAdminDashboard() {
                                         placeholder="Describe your request in detail..."
                                         value={newRequest.description}
                                         onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
-                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm min-h-[120px] resize-none"
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm min-h-[120px] resize-none text-black"
                                         required
                                     />
                                 </div>
