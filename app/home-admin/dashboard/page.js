@@ -164,6 +164,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { verifyHomeAdminToken } from "@/lib/authUtils";
+import { LogOut } from "lucide-react";
 
 export default function HomeAdminDashboard() {
     const [admin, setAdmin] = useState(null);
@@ -283,6 +284,12 @@ export default function HomeAdminDashboard() {
         }
     }
 
+    const handleLogout = () => {
+        localStorage.removeItem("homeAdminToken");
+        localStorage.removeItem("homeAdmin");
+        router.push("/home-admin/login");
+    };
+
     // Show loading state while checking authentication
     if (!isAuthenticated || !admin) {
         return (
@@ -299,11 +306,18 @@ export default function HomeAdminDashboard() {
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
                 {/* Header */}
-                <div className="text-center mb-10">
-                    <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
+                <div className="relative text-center mb-10">
+                    <button
+                        onClick={handleLogout}
+                        className="absolute top-0 right-0 flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm md:text-base"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        <span className="hidden sm:inline">Logout</span>
+                    </button>
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4 pr-20 md:pr-0">
                         🏠 HomeAdmin Dashboard
                     </h1>
-                    <p className="text-gray-600 text-lg">Manage your home and service requests</p>
+                    <p className="text-gray-600 text-base md:text-lg">Manage your home and service requests</p>
                 </div>
 
                 {/* Tabs */}

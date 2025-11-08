@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Gift, LogOut, LayoutDashboard, UserPlus, Building2, Plus, UserCheck } from 'lucide-react';
+import { Home, Users, Gift, LogOut, LayoutDashboard, UserPlus, Building2, Plus, UserCheck, ClipboardList } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 
 export default function AdminSidebar() {
@@ -162,6 +162,22 @@ export default function AdminSidebar() {
           <Building2 className={`w-5 h-5 ${pathname === '/admin/homeadminsList' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
           <span>Home Admin List</span>
           {pathname === '/admin/homeadminsList' && (
+            <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+          )}
+        </Link>
+
+        {/* Home Requests Link */}
+        <Link
+          href="/admin/home-requests"
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+            pathname === '/admin/home-requests'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+              : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
+          }`}
+        >
+          <ClipboardList className={`w-5 h-5 ${pathname === '/admin/home-requests' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
+          <span>Home Requests</span>
+          {pathname === '/admin/home-requests' && (
             <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
           )}
         </Link>

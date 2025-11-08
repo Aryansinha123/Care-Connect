@@ -5,11 +5,12 @@ import Navbar from "./Navbar";
 export default function ConditionalNavbar() {
   const pathname = usePathname();
   
-  // Exclude navbar from admin and home-admin pages
+  // Exclude navbar from admin, home-admin, and register-home pages
   const isAdminRoute = pathname?.startsWith("/admin");
   const isHomeAdminRoute = pathname?.startsWith("/home-admin");
+  const isRegisterHomeRoute = pathname === "/register-home";
   
-  if (isAdminRoute || isHomeAdminRoute) {
+  if (isAdminRoute || isHomeAdminRoute || isRegisterHomeRoute) {
     return null;
   }
   
