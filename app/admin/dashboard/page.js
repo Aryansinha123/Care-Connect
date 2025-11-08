@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck } from 'lucide-react';
+import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, ArrowUpDown } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 
 const AdminDashboard = () => {
@@ -16,6 +16,12 @@ const AdminDashboard = () => {
   const [adminName, setAdminName] = useState('Admin');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  
+  // Donation filters and sort
+  const [donationHomeName, setDonationHomeName] = useState('all');
+  const [donationHomeType, setDonationHomeType] = useState('all');
+  const [donationLocation, setDonationLocation] = useState('all');
+  const [donationSortBy, setDonationSortBy] = useState('date-desc');
 
   // Get admin name
   useEffect(() => {
@@ -109,6 +115,43 @@ const AdminDashboard = () => {
     const matchesFilter = filterType === 'all' || home.type === filterType;
     return matchesSearch && matchesFilter;
   });
+
+  // Filter and sort donations
+  const filteredAndSortedDonations = donations
+    .filter(donation => {
+      const home = donation.homeId;
+      if (!home) return false;
+      
+      const matchesHomeName = donationHomeName === 'all' || donationHomeName === '' || 
+        (home.name?.toLowerCase().includes(donationHomeName.toLowerCase()));
+      const matchesHomeType = donationHomeType === 'all' || home.type === donationHomeType;
+      const matchesLocation = donationLocation === 'all' || 
+        (home.location?.toLowerCase().includes(donationLocation.toLowerCase()));
+      
+      return matchesHomeName && matchesHomeType && matchesLocation;
+    })
+    .sort((a, b) => {
+      switch (donationSortBy) {
+        case 'date-desc':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'date-asc':
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'name-asc':
+          return (a.homeId?.name || '').localeCompare(b.homeId?.name || '');
+        case 'name-desc':
+          return (b.homeId?.name || '').localeCompare(a.homeId?.name || '');
+        case 'location-asc':
+          return (a.homeId?.location || '').localeCompare(b.homeId?.location || '');
+        case 'location-desc':
+          return (b.homeId?.location || '').localeCompare(a.homeId?.location || '');
+        default:
+          return 0;
+      }
+    });
+
+  // Get unique values for filter dropdowns
+  const uniqueHomeNames = [...new Set(donations.map(d => d.homeId?.name).filter(Boolean))].sort();
+  const uniqueLocations = [...new Set(donations.map(d => d.homeId?.location).filter(Boolean))].sort();
 
   const stats = [
     {
@@ -282,12 +325,31 @@ const AdminDashboard = () => {
                     <div key={home._id || index} className="p-6 hover:bg-white/50 transition-colors duration-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <Home className="w-8 h-8 text-white" />
+                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                            {home.imageUrl ? (
+                              <img
+                                src={home.imageUrl}
+                                alt={home.name || home.title || `Home ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.style.display = 'none';
+                                  const fallback = e.target.parentElement.querySelector('.home-icon-fallback');
+                                  if (fallback) {
+                                    fallback.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center home-icon-fallback ${home.imageUrl ? 'hidden' : 'flex'}`}
+                            >
+                              <Home className="w-8 h-8 text-white" />
+                            </div>
                           </div>
                           <div>
                             <h3 className="font-semibold text-slate-800">
-                              {home.title || `Home #${index + 1}`}
+                              {home.name || home.title || `Home #${index + 1}`}
                             </h3>
                             <p className="text-slate-600 text-sm flex items-center gap-1">
                               <MapPin className="w-4 h-4" />
@@ -319,25 +381,109 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'donations' && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  All Item Donations ({donations.length})
-                </h2>
-                <button
-                  onClick={fetchDonations}
-                  disabled={donationsLoading}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
-                >
-                  <RefreshCw 
-                    className={`w-4 h-4 ${donationsLoading ? 'animate-spin' : ''}`} 
-                  />
-                  {donationsLoading ? 'Refreshing...' : 'Refresh'}
-                </button>
+          <>
+            {/* Filter and Sort Controls */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg mb-8 border border-white/20">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Filter & Sort Donations
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setDonationHomeName('all');
+                      setDonationHomeType('all');
+                      setDonationLocation('all');
+                      setDonationSortBy('date-desc');
+                    }}
+                    className="text-sm text-slate-600 hover:text-blue-600 font-medium"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Home Name Filter */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Search by home name..."
+                      value={donationHomeName === 'all' ? '' : donationHomeName}
+                      onChange={(e) => setDonationHomeName(e.target.value.trim() === '' ? 'all' : e.target.value)}
+                      className="text-black w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                    />
+                  </div>
+
+                  {/* Home Type Filter */}
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <select
+                      value={donationHomeType}
+                      onChange={(e) => setDonationHomeType(e.target.value)}
+                      className="text-black w-full pl-10 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="all">All Home Types</option>
+                      <option value="orphanage">Orphanage</option>
+                      <option value="oldage">Old Age Home</option>
+                    </select>
+                  </div>
+
+                  {/* Location Filter */}
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <select
+                      value={donationLocation}
+                      onChange={(e) => setDonationLocation(e.target.value)}
+                      className="text-black w-full pl-10 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="all">All Locations</option>
+                      {uniqueLocations.map(location => (
+                        <option key={location} value={location}>{location}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Sort By */}
+                  <div className="relative">
+                    <ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <select
+                      value={donationSortBy}
+                      onChange={(e) => setDonationSortBy(e.target.value)}
+                      className="text-black w-full pl-10 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="date-desc">Newest First</option>
+                      <option value="date-asc">Oldest First</option>
+                      <option value="name-asc">Home Name (A-Z)</option>
+                      <option value="name-desc">Home Name (Z-A)</option>
+                      <option value="location-asc">Location (A-Z)</option>
+                      <option value="location-desc">Location (Z-A)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                    <Gift className="w-5 h-5" />
+                    All Item Donations ({filteredAndSortedDonations.length} of {donations.length})
+                  </h2>
+                  <button
+                    onClick={fetchDonations}
+                    disabled={donationsLoading}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                  >
+                    <RefreshCw 
+                      className={`w-4 h-4 ${donationsLoading ? 'animate-spin' : ''}`} 
+                    />
+                    {donationsLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+              </div>
 
             {donationsLoading ? (
               <div className="p-6">
@@ -359,9 +505,15 @@ const AdminDashboard = () => {
                 <h3 className="text-lg font-semibold text-slate-600 mb-2">No donations yet</h3>
                 <p className="text-slate-500">Donations will appear here when users submit item donations.</p>
               </div>
+            ) : filteredAndSortedDonations.length === 0 ? (
+              <div className="p-12 text-center">
+                <Gift className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-600 mb-2">No donations match your filters</h3>
+                <p className="text-slate-500">Try adjusting your filter criteria to see more results.</p>
+              </div>
             ) : (
               <div className="divide-y divide-slate-200">
-                {donations.map((donation) => (
+                {filteredAndSortedDonations.map((donation) => (
                   <div key={donation._id} className="p-6 hover:bg-white/50 transition-colors duration-200">
                     <div className="flex items-start gap-4">
                       {donation.imageUrl && (
@@ -409,6 +561,7 @@ const AdminDashboard = () => {
               </div>
             )}
           </div>
+          </>
         )}
 
         {activeTab === 'users' && (
