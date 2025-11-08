@@ -210,25 +210,28 @@ export default function AddHomeAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
-            <UserPlus className="w-8 h-8 text-white" />
+    <div className="flex-1 flex flex-col">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-8 py-5">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              👤 Create Home Admin
+            </h1>
+            <p className="text-slate-600 text-sm mt-2 font-medium">Create a new administrator account for a home</p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Register Home Admin
-          </h1>
-          <p className="text-gray-600">
-            Create a new administrator account for a home
-          </p>
         </div>
+      </div>
 
-        {/* Form Card */}
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-8 py-8">
+          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
+
+        {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100"
+          className="space-y-6"
         >
           {/* Message Alert */}
           {message && (
@@ -349,6 +352,8 @@ export default function AddHomeAdminPage() {
         <p className="text-center text-sm text-gray-500 mt-6">
           All fields are required to create an admin account
         </p>
+          </div>
+        </div>
       </div>
     </div>
   );

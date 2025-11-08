@@ -206,9 +206,9 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 flex flex-col">
       {/* Toast Container */}
-      <div className="fixed top-0 right-0 z-50 p-4 space-y-2">
+      <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(toast => (
           <Toast
             key={toast.id}
@@ -220,31 +220,29 @@ export default function AdminDashboard() {
       </div>
 
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Home className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Homes Management</h1>
-                <p className="text-sm text-gray-500">Manage orphanages and old age homes</p>
-              </div>
+      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-7xl mx-auto px-8 py-5">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                🏠 Homes Management
+              </h1>
+              <p className="text-slate-600 text-sm mt-2 font-medium">Manage orphanages and old age homes</p>
             </div>
             
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 shadow-sm"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               {editingId ? 'Cancel Edit' : 'Add New Home'}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-8 py-8">
         {/* Add/Edit New Home Form */}
         {showAddForm && (
           <div className="bg-white rounded-xl shadow-sm border mb-8 overflow-hidden">
@@ -557,7 +555,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      )}
+        )}
+        </div>
+      </div>
     </div>
   );
 }

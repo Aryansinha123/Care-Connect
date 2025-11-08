@@ -1,52 +1,37 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { Home, TrendingUp, Users, MapPin, Plus, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, LogOut, LayoutDashboard, UserPlus, Building2 } from 'lucide-react';
-import { verifyAdminToken } from '@/lib/authUtils';
+import { useRouter } from 'next/navigation';
+import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck } from 'lucide-react';
+import { useDashboard } from '../context/DashboardContext';
 
 const AdminDashboard = () => {
   const router = useRouter();
-  const pathname = usePathname();
+  const { activeTab, setActiveTab } = useDashboard();
   const [homes, setHomes] = useState([]);
   const [donations, setDonations] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [donationsLoading, setDonationsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminName, setAdminName] = useState('Admin');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [activeTab, setActiveTab] = useState('homes'); // 'homes', 'donations', or 'users'
 
-  // Check authentication on mount and get admin name
+  // Get admin name
   useEffect(() => {
-    const checkAuth = () => {
-      if (!verifyAdminToken()) {
-        router.push('/admin/login');
-        return;
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        setAdminName(decoded.name || 'Admin');
+      } catch {
+        setAdminName('Admin');
       }
-      setIsAuthenticated(true);
-
-      // Get admin name from token
-      const token = localStorage.getItem('admin_token');
-      if (token) {
-        try {
-          const decoded = JSON.parse(atob(token.split('.')[1]));
-          setAdminName(decoded.name || 'Admin');
-        } catch {
-          setAdminName('Admin');
-        }
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    }
+  }, []);
 
   // Fetch homes data
   useEffect(() => {
-    if (!isAuthenticated) return;
 
     const fetchHomes = async () => {
       try {
@@ -63,7 +48,7 @@ const AdminDashboard = () => {
     };
 
     fetchHomes();
-  }, [isAuthenticated]);
+  }, []);
 
   // Fetch donations data
   const fetchDonations = useCallback(async () => {
@@ -87,9 +72,9 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || activeTab !== 'donations') return;
+    if (activeTab !== 'donations') return;
     fetchDonations();
-  }, [isAuthenticated, activeTab, fetchDonations]);
+  }, [activeTab, fetchDonations]);
 
   // Fetch users data
   const fetchUsers = useCallback(async () => {
@@ -113,9 +98,9 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || activeTab !== 'users') return;
+    if (activeTab !== 'users') return;
     fetchUsers();
-  }, [isAuthenticated, activeTab, fetchUsers]);
+  }, [activeTab, fetchUsers]);
 
   // Filter homes based on search and filter
   const filteredHomes = homes.filter(home => {
@@ -160,262 +145,40 @@ const AdminDashboard = () => {
     }
   ];
 
-  // Show loading state while checking authentication
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Verifying authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    router.push('/admin/login');
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
-      {/* Enhanced Unified Sidebar */}
-      <div className="w-80 bg-gradient-to-b from-white via-white to-slate-50 backdrop-blur-xl border-r border-slate-200/50 sticky top-0 h-screen shadow-2xl flex flex-col">
-        {/* Sidebar Header with CareConnect Branding */}
-        <div className="p-6 border-b border-slate-200/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-xl">C</span>
-            </div>
+    <div className="flex-1 flex flex-col">
+      {/* Top Bar */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-10 shadow-sm">
+        <div className="px-8 py-5">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                CareConnect
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">Admin Dashboard</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                {activeTab === 'homes' && '🏠 Homes Management'}
+                {activeTab === 'donations' && '🎁 Donations'}
+                {activeTab === 'users' && '👥 Users Management'}
+              </h1>
+              <p className="text-slate-600 text-sm mt-2 font-medium">
+                {activeTab === 'homes' && 'Manage and monitor all home listings'}
+                {activeTab === 'donations' && 'View and manage all item donations'}
+                {activeTab === 'users' && 'View and manage all registered users'}
+              </p>
             </div>
-          </div>
-          
-          {/* User Info */}
-          <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl border border-slate-200/50">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-              {adminName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-800">Welcome</p>
-              <p className="text-xs text-blue-600 font-medium">{adminName}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Main Menu</p>
-          
-          {/* Dashboard Link - Current Page */}
-          <Link
-            href="/admin/dashboard"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-              pathname === '/admin/dashboard'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
-            }`}
-          >
-            <LayoutDashboard className={`w-5 h-5 ${pathname === '/admin/dashboard' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
-            <span>Dashboard</span>
-            {pathname === '/admin/dashboard' && (
-              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-            )}
-          </Link>
-
-          {/* Manage Homes Link */}
-          <Link
-            href="/admin/create-home"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-              pathname === '/admin/create-home'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
-            }`}
-          >
-            <Home className={`w-5 h-5 ${pathname === '/admin/create-home' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
-            <span>Manage Homes</span>
-            {pathname === '/admin/create-home' && (
-              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-            )}
-          </Link>
-
-          {/* Create Admin Link */}
-          <Link
-            href="/admin/create-admin"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-              pathname === '/admin/create-admin'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
-            }`}
-          >
-            <UserPlus className={`w-5 h-5 ${pathname === '/admin/create-admin' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
-            <span>Create Admin</span>
-            {pathname === '/admin/create-admin' && (
-              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-            )}
-          </Link>
-
-          {/* Home Admin List Link */}
-          <Link
-            href="/admin/homeadminsList"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-              pathname === '/admin/homeadminsList'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-blue-600'
-            }`}
-          >
-            <Building2 className={`w-5 h-5 ${pathname === '/admin/homeadminsList' ? 'text-white' : 'text-slate-500 group-hover:text-blue-600'}`} />
-            <span>Home Admin List</span>
-            {pathname === '/admin/homeadminsList' && (
-              <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-            )}
-          </Link>
-
-          {/* Dashboard Tabs Section - Only show on dashboard page */}
-          {pathname === '/admin/dashboard' && (
-            <>
-              <div className="pt-4 mt-4 border-t border-slate-200/50">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Dashboard Views</p>
-                
-                <button
-                  onClick={() => setActiveTab('homes')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-                    activeTab === 'homes'
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
-                  }`}
-                >
-                  <Home className={`w-5 h-5 ${activeTab === 'homes' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
-                  <span>Homes</span>
-                  {activeTab === 'homes' && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('donations')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-                    activeTab === 'donations'
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
-                  }`}
-                >
-                  <Gift className={`w-5 h-5 ${activeTab === 'donations' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
-                  <span>Donations</span>
-                  {activeTab === 'donations' && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('users')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
-                    activeTab === 'users'
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
-                  }`}
-                >
-                  <UserCheck className={`w-5 h-5 ${activeTab === 'users' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
-                  <span>Users</span>
-                  {activeTab === 'users' && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </button>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm text-slate-500">Welcome back,</p>
+                <p className="text-sm font-semibold text-blue-600">{adminName}</p>
               </div>
-            </>
-          )}
-
-          {/* Quick Actions Section */}
-          <div className="pt-6 mt-6 border-t border-slate-200/50">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Quick Actions</p>
-            <Link
-              href="/admin/create-home"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700 transition-all duration-200 group"
-            >
-              <Plus className="w-5 h-5 text-slate-500 group-hover:text-green-600" />
-              <span>Add New Home</span>
-            </Link>
-          </div>
-
-          {/* Stats Summary */}
-          <div className="pt-6 mt-6 border-t border-slate-200/50">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">Overview</p>
-            <div className="space-y-2 px-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50/70 rounded-lg border border-blue-100/50">
-                <div className="flex items-center gap-2">
-                  <Home className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-slate-700 font-medium">Homes</span>
-                </div>
-                <span className="text-sm font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">{homes.length}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-purple-50/70 rounded-lg border border-purple-100/50">
-                <div className="flex items-center gap-2">
-                  <Gift className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm text-slate-700 font-medium">Donations</span>
-                </div>
-                <span className="text-sm font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded-full">{donations.length}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-indigo-50/70 rounded-lg border border-indigo-100/50">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-600" />
-                  <span className="text-sm text-slate-700 font-medium">Users</span>
-                </div>
-                <span className="text-sm font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">{users.length}</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
+                {adminName.charAt(0).toUpperCase()}
               </div>
             </div>
           </div>
-        </nav>
-
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-slate-200/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-slate-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 group border border-slate-200/50 hover:border-red-200"
-          >
-            <LogOut className="w-5 h-5 text-slate-500 group-hover:text-red-600" />
-            <span>Logout</span>
-          </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200/50 sticky top-0 z-10 shadow-sm">
-          <div className="px-8 py-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {activeTab === 'homes' && '🏠 Homes Management'}
-                  {activeTab === 'donations' && '🎁 Donations'}
-                  {activeTab === 'users' && '👥 Users Management'}
-                </h1>
-                <p className="text-slate-600 text-sm mt-2 font-medium">
-                  {activeTab === 'homes' && 'Manage and monitor all home listings'}
-                  {activeTab === 'donations' && 'View and manage all item donations'}
-                  {activeTab === 'users' && 'View and manage all registered users'}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm text-slate-500">Welcome back,</p>
-                  <p className="text-sm font-semibold text-blue-600">{adminName}</p>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
-                  {adminName.charAt(0).toUpperCase()}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-8 py-8">
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-8 py-8">
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -741,7 +504,6 @@ const AdminDashboard = () => {
             )}
           </div>
         )}
-          </div>
         </div>
       </div>
     </div>
