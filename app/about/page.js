@@ -109,7 +109,7 @@ export default function AboutPage() {
           </p>
           <div className="inline-block bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl border border-pink-300/30">
             <p className="text-pink-200 font-semibold text-xl italic">
-              "Small acts of kindness, when multiplied, can transform the world."
+              &quot;Small acts of kindness, when multiplied, can transform the world.&quot;
             </p>
           </div>
         </div>
