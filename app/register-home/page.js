@@ -323,7 +323,7 @@ export default function RegisterHomePage() {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Upload className="w-4 h-4 inline mr-2" />
-                Document Upload (Optional)
+                Document Upload *
               </label>
               <p className="text-xs text-gray-500 mb-2">
                 Upload registration certificate or ID proof (PDF, JPEG, PNG - Max 5MB)

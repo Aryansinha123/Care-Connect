@@ -1,8 +1,9 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, ArrowUpDown } from 'lucide-react';
+import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, ArrowUpDown, HandHeart } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
+import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
   const router = useRouter();
@@ -10,9 +11,11 @@ const AdminDashboard = () => {
   const [homes, setHomes] = useState([]);
   const [donations, setDonations] = useState([]);
   const [users, setUsers] = useState([]);
+  const [volunteerRequests, setVolunteerRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [donationsLoading, setDonationsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [volunteerRequestsLoading, setVolunteerRequestsLoading] = useState(false);
   const [adminName, setAdminName] = useState('Admin');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -22,6 +25,13 @@ const AdminDashboard = () => {
   const [donationHomeType, setDonationHomeType] = useState('all');
   const [donationLocation, setDonationLocation] = useState('all');
   const [donationSortBy, setDonationSortBy] = useState('date-desc');
+
+  // Volunteer request filters
+  const [volunteerHomeId, setVolunteerHomeId] = useState('all');
+  const [volunteerStatus, setVolunteerStatus] = useState('all');
+  const [volunteerDate, setVolunteerDate] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [requestVolunteers, setRequestVolunteers] = useState([]);
 
   // Get admin name
   useEffect(() => {
@@ -107,6 +117,83 @@ const AdminDashboard = () => {
     if (activeTab !== 'users') return;
     fetchUsers();
   }, [activeTab, fetchUsers]);
+
+  // Fetch volunteer requests
+  const fetchVolunteerRequests = useCallback(async () => {
+    setVolunteerRequestsLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const params = new URLSearchParams();
+      if (volunteerHomeId !== 'all') params.append('homeId', volunteerHomeId);
+      if (volunteerStatus !== 'all') params.append('status', volunteerStatus);
+      if (volunteerDate) params.append('date', volunteerDate);
+
+      const response = await fetch(`/api/admin/volunteer-requests?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setVolunteerRequests(result.requests || []);
+      }
+    } catch (error) {
+      console.error('Error fetching volunteer requests:', error);
+    } finally {
+      setVolunteerRequestsLoading(false);
+    }
+  }, [volunteerHomeId, volunteerStatus, volunteerDate]);
+
+  useEffect(() => {
+    if (activeTab !== 'volunteers') return;
+    fetchVolunteerRequests();
+  }, [activeTab, fetchVolunteerRequests]);
+
+  // Fetch volunteers for a specific request
+  const fetchRequestVolunteers = async (requestId) => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`/api/admin/volunteer-requests/${requestId}/volunteers`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setRequestVolunteers(result.volunteers || []);
+        setSelectedRequest(result.request);
+      }
+    } catch (error) {
+      console.error('Error fetching volunteers:', error);
+    }
+  };
+
+  // Update volunteer request status
+  const updateVolunteerRequestStatus = async (requestId, status, isFlagged) => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('/api/admin/volunteer-requests', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: requestId, status, isFlagged }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        fetchVolunteerRequests();
+        setSelectedRequest(null);
+        setRequestVolunteers([]);
+        toast.success('Request updated successfully!');
+      } else {
+        toast.error(result.message || 'Failed to update request');
+      }
+    } catch (error) {
+      console.error('Error updating request:', error);
+      toast.error('An error occurred while updating the request');
+    }
+  };
 
   // Filter homes based on search and filter
   const filteredHomes = homes.filter(home => {
@@ -199,11 +286,13 @@ const AdminDashboard = () => {
                 {activeTab === 'homes' && '🏠 Homes Management'}
                 {activeTab === 'donations' && '🎁 Donations'}
                 {activeTab === 'users' && '👥 Users Management'}
+                {activeTab === 'volunteers' && '🤝 Volunteer Management'}
               </h1>
               <p className="text-slate-600 text-sm mt-2 font-medium">
                 {activeTab === 'homes' && 'Manage and monitor all home listings'}
                 {activeTab === 'donations' && 'View and manage all item donations'}
                 {activeTab === 'users' && 'View and manage all registered users'}
+                {activeTab === 'volunteers' && 'View and manage all volunteer requests'}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -561,6 +650,267 @@ const AdminDashboard = () => {
               </div>
             )}
           </div>
+          </>
+        )}
+
+        {activeTab === 'volunteers' && (
+          <>
+            {/* Filter Controls */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg mb-8 border border-white/20">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Filter Volunteer Requests
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setVolunteerHomeId('all');
+                      setVolunteerStatus('all');
+                      setVolunteerDate('');
+                    }}
+                    className="text-sm text-slate-600 hover:text-blue-600 font-medium"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Home Filter */}
+                  <div className="relative">
+                    <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <select
+                      value={volunteerHomeId}
+                      onChange={(e) => setVolunteerHomeId(e.target.value)}
+                      className="text-black w-full pl-10 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="all">All Homes</option>
+                      {homes.map(home => (
+                        <option key={home._id} value={home._id}>{home.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <select
+                      value={volunteerStatus}
+                      onChange={(e) => setVolunteerStatus(e.target.value)}
+                      className="text-black w-full pl-10 pr-8 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
+
+                  {/* Date Filter */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <input
+                      type="date"
+                      value={volunteerDate}
+                      onChange={(e) => setVolunteerDate(e.target.value)}
+                      className="text-black w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                    <HandHeart className="w-5 h-5" />
+                    All Volunteer Requests ({volunteerRequests.length})
+                  </h2>
+                  <button
+                    onClick={fetchVolunteerRequests}
+                    disabled={volunteerRequestsLoading}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                  >
+                    <RefreshCw 
+                      className={`w-4 h-4 ${volunteerRequestsLoading ? 'animate-spin' : ''}`} 
+                    />
+                    {volunteerRequestsLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+              </div>
+
+              {volunteerRequestsLoading ? (
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center space-x-4 animate-pulse">
+                        <div className="w-16 h-16 bg-slate-200 rounded-lg"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                          <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : volunteerRequests.length === 0 ? (
+                <div className="p-12 text-center">
+                  <HandHeart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-600 mb-2">No volunteer requests found</h3>
+                  <p className="text-slate-500">Volunteer requests will appear here when home admins create them.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200">
+                  {volunteerRequests.map((request) => (
+                    <div key={request._id} className="p-6 hover:bg-white/50 transition-colors duration-200">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="font-semibold text-slate-800 text-lg">{request.title}</h3>
+                              <p className="text-sm text-slate-600 mt-1">
+                                Home: <span className="font-medium">{request.homeId?.name || 'Unknown'}</span> • 
+                                Location: <span className="font-medium">{request.homeId?.location || 'Unknown'}</span>
+                              </p>
+                              <p className="text-sm text-slate-500 mt-1">
+                                Volunteers: <span className="font-medium">{request.volunteerCount || 0} / {request.numberOfVolunteersRequired}</span> • 
+                                Date: <span className="font-medium">{new Date(request.dateTime).toLocaleDateString()}</span> • 
+                                Time: <span className="font-medium">{new Date(request.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <span
+                                className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                  request.status === 'open'
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : request.status === 'closed'
+                                    ? 'bg-gray-200 text-gray-600 border border-gray-300'
+                                    : 'bg-red-100 text-red-700 border border-red-200'
+                                }`}
+                              >
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </span>
+                              {request.isFlagged && (
+                                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                  ⚠️ Flagged
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-slate-700 text-sm mb-3">{request.description}</p>
+                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <span>📍 {request.location}</span>
+                            <span>📅 Created: {new Date(request.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-4">
+                            <button
+                              onClick={() => fetchRequestVolunteers(request._id)}
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
+                            >
+                              View Volunteers ({request.volunteerCount || 0})
+                            </button>
+                            {request.status === 'open' && (
+                              <button
+                                onClick={() => updateVolunteerRequestStatus(request._id, 'closed', false)}
+                                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm font-medium"
+                              >
+                                Close Request
+                              </button>
+                            )}
+                            {request.status !== 'disabled' && (
+                              <button
+                                onClick={() => updateVolunteerRequestStatus(request._id, 'disabled', false)}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm font-medium"
+                              >
+                                Disable
+                              </button>
+                            )}
+                            {!request.isFlagged && (
+                              <button
+                                onClick={() => updateVolunteerRequestStatus(request._id, request.status, true)}
+                                className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors duration-200 text-sm font-medium"
+                              >
+                                Flag
+                              </button>
+                            )}
+                            {request.isFlagged && (
+                              <button
+                                onClick={() => updateVolunteerRequestStatus(request._id, request.status, false)}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm font-medium"
+                              >
+                                Unflag
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Volunteers Modal */}
+            {selectedRequest && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex justify-between items-center rounded-t-2xl">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800">Volunteers for: {selectedRequest.title}</h2>
+                      <p className="text-sm text-slate-600 mt-1">{selectedRequest.homeId?.name} • {selectedRequest.location}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedRequest(null);
+                        setRequestVolunteers([]);
+                      }}
+                      className="text-slate-500 hover:text-slate-700 text-2xl font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="p-6">
+                    {requestVolunteers.length > 0 ? (
+                      <div className="space-y-4">
+                        {requestVolunteers.map((participation) => (
+                          <div
+                            key={participation._id}
+                            className="p-4 bg-slate-50 rounded-xl border border-slate-200"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                {participation.userId?.image ? (
+                                  <img
+                                    src={participation.userId.image}
+                                    alt={participation.userId.name}
+                                    className="w-12 h-12 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <span>{participation.userId?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-slate-800">{participation.userId?.name || 'Unknown User'}</h3>
+                                <p className="text-sm text-slate-600">{participation.userId?.email || 'No email'}</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Volunteered: {new Date(participation.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <HandHeart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">No volunteers yet for this request</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 

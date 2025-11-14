@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Gift, LogOut, LayoutDashboard, UserPlus, Building2, Plus, UserCheck, ClipboardList } from 'lucide-react';
+import { Home, Users, Gift, LogOut, LayoutDashboard, UserPlus, Building2, Plus, UserCheck, ClipboardList, HandHeart } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 
 export default function AdminSidebar() {
@@ -229,6 +229,21 @@ export default function AdminSidebar() {
                 <UserCheck className={`w-5 h-5 ${activeTab === 'users' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
                 <span>Users</span>
                 {activeTab === 'users' && (
+                  <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('volunteers')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group ${
+                  activeTab === 'volunteers'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-purple-600'
+                }`}
+              >
+                <HandHeart className={`w-5 h-5 ${activeTab === 'volunteers' ? 'text-white' : 'text-slate-500 group-hover:text-purple-600'}`} />
+                <span>Volunteers</span>
+                {activeTab === 'volunteers' && (
                   <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
                 )}
               </button>

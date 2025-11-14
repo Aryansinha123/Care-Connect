@@ -4,6 +4,7 @@ import "./globals.css";
 import NextAuthSessionProvider from "./components/SessionProvider";
 import ConditionalNavbar from "./components/ConditionalNavbar";
 import Footer from "./components/Footer";
+import Toaster from "./components/Toaster";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
             </main>
             <Footer />
           </div>
+          <Toaster />
         </NextAuthSessionProvider>
         <Analytics />
       </body>

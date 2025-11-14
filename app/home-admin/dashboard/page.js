@@ -164,16 +164,29 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { verifyHomeAdminToken } from "@/lib/authUtils";
-import { LogOut } from "lucide-react";
+import { LogOut, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function HomeAdminDashboard() {
     const [admin, setAdmin] = useState(null);
     const [requests, setRequests] = useState([]);
     const [donations, setDonations] = useState([]);
+    const [volunteerRequests, setVolunteerRequests] = useState([]);
     const [newRequest, setNewRequest] = useState({ title: "", description: "" });
+    const [newVolunteerRequest, setNewVolunteerRequest] = useState({
+        title: "",
+        description: "",
+        numberOfVolunteersRequired: "",
+        dateTime: "",
+        location: "",
+    });
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [donationsLoading, setDonationsLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'donations'
+    const [volunteerRequestsLoading, setVolunteerRequestsLoading] = useState(false);
+    const [selectedVolunteerRequest, setSelectedVolunteerRequest] = useState(null);
+    const [requestVolunteers, setRequestVolunteers] = useState([]);
+    const [volunteersLoading, setVolunteersLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'donations', or 'volunteers'
     const router = useRouter();
 
     async function fetchRequests(id, token) {
@@ -221,11 +234,11 @@ export default function HomeAdminDashboard() {
                     )
                 );
             } else {
-                alert(data.message || "Failed to update donation status");
+                toast.error(data.message || "Failed to update donation status");
             }
         } catch (error) {
             console.error("Error updating donation status:", error);
-            alert("An error occurred while updating donation status");
+            toast.error("An error occurred while updating donation status");
         }
     }
 
@@ -265,6 +278,68 @@ export default function HomeAdminDashboard() {
         }
     }, [isAuthenticated, activeTab]);
 
+    async function fetchVolunteerRequests(token) {
+        setVolunteerRequestsLoading(true);
+        try {
+            const res = await fetch(`/api/volunteer-requests?homeId=${admin.home._id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (data.success) {
+                const requests = data.requests || [];
+                // Fetch volunteer counts for each request
+                const requestsWithCounts = await Promise.all(
+                    requests.map(async (request) => {
+                        try {
+                            const volunteersRes = await fetch(`/api/volunteer-participation?volunteerRequestId=${request._id}`);
+                            const volunteersData = await volunteersRes.json();
+                            return {
+                                ...request,
+                                volunteerCount: volunteersData.success ? (volunteersData.participations?.length || 0) : 0,
+                            };
+                        } catch (error) {
+                            return { ...request, volunteerCount: 0 };
+                        }
+                    })
+                );
+                setVolunteerRequests(requestsWithCounts);
+            }
+        } catch (error) {
+            console.error("Error fetching volunteer requests:", error);
+        } finally {
+            setVolunteerRequestsLoading(false);
+        }
+    }
+
+    async function fetchRequestVolunteers(requestId) {
+        setVolunteersLoading(true);
+        try {
+            const res = await fetch(`/api/volunteer-participation?volunteerRequestId=${requestId}`);
+            const data = await res.json();
+            if (data.success) {
+                setRequestVolunteers(data.participations || []);
+                // Find the request details
+                const request = volunteerRequests.find(r => r._id === requestId);
+                setSelectedVolunteerRequest(request);
+            }
+        } catch (error) {
+            console.error("Error fetching volunteers:", error);
+            toast.error("Error fetching volunteer details");
+        } finally {
+            setVolunteersLoading(false);
+        }
+    }
+
+    // Fetch volunteer requests when volunteers tab is active
+    useEffect(() => {
+        if (isAuthenticated && activeTab === 'volunteers') {
+            const token = localStorage.getItem("homeAdminToken");
+            if (token) {
+                fetchVolunteerRequests(token);
+            }
+        }
+    }, [isAuthenticated, activeTab, admin]);
+
     async function handleCreateRequest(e) {
         e.preventDefault();
         const token = localStorage.getItem("homeAdminToken");
@@ -281,6 +356,37 @@ export default function HomeAdminDashboard() {
         if (data.success) {
             setRequests((prev) => [...prev, data.request]);
             setNewRequest({ title: "", description: "" });
+        }
+    }
+
+    async function handleCreateVolunteerRequest(e) {
+        e.preventDefault();
+        const token = localStorage.getItem("homeAdminToken");
+
+        const res = await fetch(`/api/volunteer-requests`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                ...newVolunteerRequest,
+                homeId: admin.home._id,
+            }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            setVolunteerRequests((prev) => [...prev, data.request]);
+            setNewVolunteerRequest({
+                title: "",
+                description: "",
+                numberOfVolunteersRequired: "",
+                dateTime: "",
+                location: "",
+            });
+            toast.success("Volunteer request created successfully! 🎉");
+        } else {
+            toast.error(data.message || "Failed to create volunteer request");
         }
     }
 
@@ -342,9 +448,19 @@ export default function HomeAdminDashboard() {
                     >
                         Donations
                     </button>
+                    <button
+                        onClick={() => setActiveTab('volunteers')}
+                        className={`px-6 py-3 font-semibold transition-colors duration-200 ${
+                            activeTab === 'volunteers'
+                                ? 'text-purple-600 border-b-2 border-purple-600'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Volunteer Requests
+                    </button>
                 </div>
 
-                {activeTab === 'requests' ? (
+                {activeTab === 'requests' && (
                 <div className="grid lg:grid-cols-3 gap-8">
                     {/* Left Column - Admin & Home Info */}
                     <div className="lg:col-span-1 space-y-6">
@@ -489,7 +605,9 @@ export default function HomeAdminDashboard() {
                         </div>
                     </div>
                 </div>
-                ) : (
+                )}
+
+                {activeTab === 'donations' && (
                     /* Donations Tab */
                     <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
                         <div className="flex items-center justify-between mb-6">
@@ -606,6 +724,259 @@ export default function HomeAdminDashboard() {
                                 <p className="text-gray-400 text-sm">Donations for your home will appear here</p>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'volunteers' && (
+                    /* Volunteer Requests Tab */
+                    <div className="space-y-6">
+                        {/* Create Volunteer Request Card */}
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
+                            <div className="flex items-center mb-6">
+                                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mr-4">
+                                    <span className="text-xl text-white">🤝</span>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">Create Volunteer Request</h3>
+                            </div>
+                            <form onSubmit={handleCreateVolunteerRequest} className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Title</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter volunteer request title..."
+                                        value={newVolunteerRequest.title}
+                                        onChange={(e) => setNewVolunteerRequest({ ...newVolunteerRequest, title: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Description</label>
+                                    <textarea
+                                        placeholder="Describe the volunteer opportunity..."
+                                        value={newVolunteerRequest.description}
+                                        onChange={(e) => setNewVolunteerRequest({ ...newVolunteerRequest, description: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm min-h-[120px] resize-none text-black"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700">Number of Volunteers Required</label>
+                                        <input
+                                            type="number"
+                                            placeholder="e.g., 5"
+                                            min="1"
+                                            value={newVolunteerRequest.numberOfVolunteersRequired}
+                                            onChange={(e) => setNewVolunteerRequest({ ...newVolunteerRequest, numberOfVolunteersRequired: e.target.value })}
+                                            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700">Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={newVolunteerRequest.dateTime}
+                                            onChange={(e) => setNewVolunteerRequest({ ...newVolunteerRequest, dateTime: e.target.value })}
+                                            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Location</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter location for volunteering..."
+                                        value={newVolunteerRequest.location}
+                                        onChange={(e) => setNewVolunteerRequest({ ...newVolunteerRequest, location: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                >
+                                    Create Volunteer Request
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Volunteer Requests List Card */}
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-4">
+                                        <span className="text-xl text-white">📋</span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-800">Your Volunteer Requests</h3>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => {
+                                            const token = localStorage.getItem("homeAdminToken");
+                                            if (token) {
+                                                fetchVolunteerRequests(token);
+                                            }
+                                        }}
+                                        disabled={volunteerRequestsLoading}
+                                        className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                                    >
+                                        <RefreshCw 
+                                            className={`w-4 h-4 ${volunteerRequestsLoading ? 'animate-spin' : ''}`} 
+                                        />
+                                        {volunteerRequestsLoading ? 'Refreshing...' : 'Refresh'}
+                                    </button>
+                                    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                                        {volunteerRequests.length} {volunteerRequests.length === 1 ? 'Request' : 'Requests'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {volunteerRequestsLoading ? (
+                                <div className="text-center py-12">
+                                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                    <p className="text-gray-600">Loading volunteer requests...</p>
+                                </div>
+                            ) : volunteerRequests.length > 0 ? (
+                                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                    {volunteerRequests.map((req) => (
+                                        <div
+                                            key={req._id}
+                                            onClick={() => fetchRequestVolunteers(req._id)}
+                                            className="group p-5 bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl border-2 border-purple-100 hover:border-purple-300 transition-all duration-200 hover:shadow-lg cursor-pointer"
+                                        >
+                                            <div className="flex justify-between items-start mb-3">
+                                                <h4 className="font-bold text-purple-800 text-lg group-hover:text-purple-900">
+                                                    {req.title}
+                                                </h4>
+                                                <span
+                                                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                                        req.status === "open"
+                                                            ? "bg-green-100 text-green-700 border border-green-200"
+                                                            : req.status === "closed"
+                                                            ? "bg-gray-200 text-gray-600 border border-gray-300"
+                                                            : "bg-red-100 text-red-700 border border-red-200"
+                                                    }`}
+                                                >
+                                                    {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-700 text-sm leading-relaxed mb-3">{req.description}</p>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-gray-600 mb-3">
+                                                <div className="flex items-center">
+                                                    <span className="mr-1">👥</span>
+                                                    {req.volunteerCount || 0} / {req.numberOfVolunteersRequired} volunteers
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="mr-1">📅</span>
+                                                    {new Date(req.dateTime).toLocaleDateString()}
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="mr-1">🕐</span>
+                                                    {new Date(req.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="mr-1">📍</span>
+                                                    {req.location}
+                                                </div>
+                                            </div>
+                                            {req.volunteerCount > 0 && (
+                                                <div className="mt-2 text-xs text-purple-600 font-medium">
+                                                    Click to view {req.volunteerCount} {req.volunteerCount === 1 ? 'volunteer' : 'volunteers'} →
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="text-3xl text-gray-400">🤝</span>
+                                    </div>
+                                    <p className="text-gray-500 text-lg mb-2">No volunteer requests yet</p>
+                                    <p className="text-gray-400 text-sm">Create your first volunteer request to get started</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Volunteers Modal */}
+                {selectedVolunteerRequest && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center rounded-t-2xl">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">Volunteers for: {selectedVolunteerRequest.title}</h2>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        {selectedVolunteerRequest.location} • {new Date(selectedVolunteerRequest.dateTime).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setSelectedVolunteerRequest(null);
+                                        setRequestVolunteers([]);
+                                    }}
+                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                {volunteersLoading ? (
+                                    <div className="text-center py-12">
+                                        <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                        <p className="text-gray-600">Loading volunteers...</p>
+                                    </div>
+                                ) : requestVolunteers.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <div className="mb-4 p-3 bg-purple-50 rounded-xl border border-purple-200">
+                                            <p className="text-sm text-purple-700">
+                                                <span className="font-semibold">{requestVolunteers.length}</span> {requestVolunteers.length === 1 ? 'volunteer has' : 'volunteers have'} signed up for this request
+                                            </p>
+                                        </div>
+                                        {requestVolunteers.map((participation) => (
+                                            <div
+                                                key={participation._id}
+                                                className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                                        {participation.userId?.image ? (
+                                                            <img
+                                                                src={participation.userId.image}
+                                                                alt={participation.userId.name}
+                                                                className="w-12 h-12 rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span>{participation.userId?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-gray-800">{participation.userId?.name || 'Unknown User'}</h3>
+                                                        <p className="text-sm text-gray-600">{participation.userId?.email || 'No email'}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            Volunteered on: {new Date(participation.timestamp).toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <span className="text-3xl text-gray-400">👥</span>
+                                        </div>
+                                        <p className="text-gray-500 text-lg mb-2">No volunteers yet</p>
+                                        <p className="text-gray-400 text-sm">Volunteers who sign up will appear here</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

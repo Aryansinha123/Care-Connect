@@ -174,6 +174,12 @@ export default function Navbar() {
           {/* User Info / Login */}
           {user ? (
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push("/user/history")}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-2xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-300"
+              >
+                📜 My History
+              </button>
               <span className="text-white font-medium">{user.name}</span>
               <button
                 onClick={handleLogout}
@@ -229,6 +235,15 @@ export default function Navbar() {
           {/* User Info / Login in Mobile */}
           {user ? (
             <div className="flex flex-col space-y-2">
+              <button
+                onClick={() => {
+                  router.push("/user/history");
+                  setMenuOpen(false);
+                }}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-2xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-300"
+              >
+                📜 My History
+              </button>
               <span className="text-white font-medium">{user.name}</span>
               <button
                 onClick={() => {
