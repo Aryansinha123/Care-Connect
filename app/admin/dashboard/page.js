@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, ArrowUpDown, HandHeart } from 'lucide-react';
+import { Home, TrendingUp, Users, MapPin, Eye, Edit3, Trash2, Filter, Search, Gift, RefreshCw, UserCheck, ArrowUpDown, HandHeart, Bell } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 import toast from 'react-hot-toast';
 
@@ -295,13 +295,22 @@ const AdminDashboard = () => {
                 {activeTab === 'volunteers' && 'View and manage all volunteer requests'}
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Welcome back,</p>
-                <p className="text-sm font-semibold text-blue-600">{adminName}</p>
-              </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {adminName.charAt(0).toUpperCase()}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/admin/notices')}
+                className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              >
+                <Bell className="w-4 h-4" />
+                <span>Create Notice</span>
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm text-slate-500">Welcome back,</p>
+                  <p className="text-sm font-semibold text-blue-600">{adminName}</p>
+                </div>
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
+                  {adminName.charAt(0).toUpperCase()}
+                </div>
               </div>
             </div>
           </div>

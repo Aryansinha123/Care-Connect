@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import NoticePopup from "./components/NoticePopup";
 export default function HomePage() {
   const [search, setSearch] = useState("");
   const [homes, setHomes] = useState([]);
@@ -116,6 +117,9 @@ export default function HomePage() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
+
+      {/* Site-wide notices – only on user home page */}
+      <NoticePopup />
 
       {/* Loading overlay for initial page load */}
       {!isLoaded && (

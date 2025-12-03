@@ -176,9 +176,10 @@ export default function Navbar() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => router.push("/user/history")}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-2xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-300"
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-sm border border-white/20 hover:bg-white/20 hover:shadow-lg transition-all duration-300"
               >
-                📜 My History
+                <span className="text-base">📜</span>
+                <span>My history</span>
               </button>
               <span className="text-white font-medium">{user.name}</span>
               <button
@@ -240,9 +241,10 @@ export default function Navbar() {
                   router.push("/user/history");
                   setMenuOpen(false);
                 }}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-2xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-sm border border-white/20 hover:bg-white/20 hover:shadow-lg transition-all duration-300"
               >
-                📜 My History
+                <span className="text-base">📜</span>
+                <span>My history</span>
               </button>
               <span className="text-white font-medium">{user.name}</span>
               <button
