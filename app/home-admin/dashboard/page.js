@@ -172,7 +172,7 @@ export default function HomeAdminDashboard() {
     const [requests, setRequests] = useState([]);
     const [donations, setDonations] = useState([]);
     const [volunteerRequests, setVolunteerRequests] = useState([]);
-    const [newRequest, setNewRequest] = useState({ title: "", description: "" });
+    const [newRequest, setNewRequest] = useState({ title: "", description: "", status: "active" });
     const [newVolunteerRequest, setNewVolunteerRequest] = useState({
         title: "",
         description: "",
@@ -187,6 +187,7 @@ export default function HomeAdminDashboard() {
     const [requestVolunteers, setRequestVolunteers] = useState([]);
     const [volunteersLoading, setVolunteersLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [requestActionLoading, setRequestActionLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'donations', 'volunteers', or 'notices'
     const [notices, setNotices] = useState([]);
     const [noticesLoading, setNoticesLoading] = useState(false);
@@ -200,6 +201,7 @@ export default function HomeAdminDashboard() {
         enabled: true,
     });
     const [editingNoticeId, setEditingNoticeId] = useState(null);
+    const [editingRequestId, setEditingRequestId] = useState(null);
     const router = useRouter();
 
     async function fetchRequests(id, token) {
@@ -487,23 +489,105 @@ export default function HomeAdminDashboard() {
         });
     }
 
-    async function handleCreateRequest(e) {
+    async function handleSaveRequest(e) {
         e.preventDefault();
         const token = localStorage.getItem("homeAdminToken");
-
-        const res = await fetch(`/api/homes/${admin.home._id}/requests`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ ...newRequest }),
-        });
-        const data = await res.json();
-        if (data.success) {
-            setRequests((prev) => [...prev, data.request]);
-            setNewRequest({ title: "", description: "" });
+        if (!token) {
+            toast.error("Session expired. Please login again.");
+            router.push("/home-admin/login");
+            return;
         }
+
+        const isEditing = Boolean(editingRequestId);
+        const url = isEditing
+            ? `/api/homes/${admin.home._id}/requests/${editingRequestId}`
+            : `/api/homes/${admin.home._id}/requests`;
+        const method = isEditing ? "PUT" : "POST";
+
+        try {
+            setRequestActionLoading(true);
+            const payload = isEditing
+                ? {
+                    title: newRequest.title,
+                    description: newRequest.description,
+                    status: newRequest.status,
+                }
+                : {
+                    title: newRequest.title,
+                    description: newRequest.description,
+                };
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                toast.success(isEditing ? "Request updated!" : "Request created!");
+                setNewRequest({ title: "", description: "", status: "active" });
+                setEditingRequestId(null);
+                fetchRequests(admin.home._id, token);
+            } else {
+                toast.error(data.message || "Failed to save request");
+            }
+        } catch (error) {
+            console.error("Error saving request:", error);
+            toast.error("An error occurred while saving request");
+        } finally {
+            setRequestActionLoading(false);
+        }
+    }
+
+    function handleEditRequest(request) {
+        setEditingRequestId(request._id);
+        setNewRequest({
+            title: request.title,
+            description: request.description,
+            status: request.status || "active",
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function handleDeleteRequest(requestId) {
+        if (!window.confirm("Are you sure you want to delete this request?")) return;
+        const token = localStorage.getItem("homeAdminToken");
+        if (!token) return;
+
+        try {
+            setRequestActionLoading(true);
+            const res = await fetch(`/api/homes/${admin.home._id}/requests/${requestId}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success("Request deleted!");
+                fetchRequests(admin.home._id, token);
+                if (editingRequestId === requestId) {
+                    setEditingRequestId(null);
+                    setNewRequest({ title: "", description: "", status: "active" });
+                }
+            } else {
+                toast.error(data.message || "Failed to delete request");
+            }
+        } catch (error) {
+            console.error("Error deleting request:", error);
+            toast.error("An error occurred while deleting request");
+        } finally {
+            setRequestActionLoading(false);
+        }
+    }
+
+    function cancelRequestEdit() {
+        setEditingRequestId(null);
+        setNewRequest({ title: "", description: "", status: "active" });
     }
 
     async function handleCreateVolunteerRequest(e) {
@@ -665,13 +749,26 @@ export default function HomeAdminDashboard() {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Create Request Card */}
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
-                            <div className="flex items-center mb-6">
-                                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mr-4">
-                                    <span className="text-xl text-white">➕</span>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mr-4">
+                                        <span className="text-xl text-white">➕</span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-800">
+                                        {editingRequestId ? "Edit Request" : "Create New Request"}
+                                    </h3>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800">Create New Request</h3>
+                                {editingRequestId && (
+                                    <button
+                                        type="button"
+                                        onClick={cancelRequestEdit}
+                                        className="text-sm text-gray-500 hover:text-gray-700 underline"
+                                    >
+                                        Cancel edit
+                                    </button>
+                                )}
                             </div>
-                            <form onSubmit={handleCreateRequest} className="space-y-4">
+                            <form onSubmit={handleSaveRequest} className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Request Title</label>
                                     <input
@@ -693,12 +790,46 @@ export default function HomeAdminDashboard() {
                                         required
                                     />
                                 </div>
-                                <button
-                                    type="submit"
-                                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                                >
-                                    Create Request
-                                </button>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Status</label>
+                                    <select
+                                        value={newRequest.status}
+                                        onChange={(e) => setNewRequest({ ...newRequest, status: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                        disabled={!editingRequestId}
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                    {!editingRequestId && (
+                                        <p className="text-xs text-gray-500">Status can be changed after creating the request.</p>
+                                    )}
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={requestActionLoading}
+                                        className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        {requestActionLoading
+                                            ? editingRequestId
+                                                ? "Updating..."
+                                                : "Creating..."
+                                            : editingRequestId
+                                            ? "Update Request"
+                                            : "Create Request"}
+                                    </button>
+                                    {editingRequestId && (
+                                        <button
+                                            type="button"
+                                            onClick={cancelRequestEdit}
+                                            className="px-6 py-4 rounded-2xl bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-all duration-200"
+                                            disabled={requestActionLoading}
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                </div>
                             </form>
                         </div>
 
@@ -740,11 +871,29 @@ export default function HomeAdminDashboard() {
                                             <p className="text-gray-700 text-sm leading-relaxed mb-3">{req.description}</p>
                                             <div className="flex justify-between items-center text-xs text-gray-500">
                                                 <span>Request #{index + 1}</span>
-                                                <div className="flex items-center">
-                                                    <div className={`w-2 h-2 rounded-full mr-2 ${
-                                                        req.status === "active" ? "bg-green-400" : "bg-gray-400"
-                                                    }`}></div>
-                                                    {req.status === "active" ? "Active" : "Inactive"}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center">
+                                                        <div className={`w-2 h-2 rounded-full mr-2 ${
+                                                            req.status === "active" ? "bg-green-400" : "bg-gray-400"
+                                                        }`}></div>
+                                                        {req.status === "active" ? "Active" : "Completed"}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleEditRequest(req)}
+                                                            className="text-xs font-semibold text-amber-600 hover:text-amber-800"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteRequest(req._id)}
+                                                            className="text-xs font-semibold text-red-600 hover:text-red-800"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
