@@ -30,6 +30,16 @@ export default function HomeDetailsPage({ params }) {
   const [showNoticesPanel, setShowNoticesPanel] = useState(false);
   const router = useRouter();
 
+  const getNoticeClientId = () => {
+    if (typeof window === "undefined") return null;
+    let clientId = localStorage.getItem("notice_client_id");
+    if (!clientId) {
+      clientId = `anon_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      localStorage.setItem("notice_client_id", clientId);
+    }
+    return clientId;
+  };
+
   const fetchVolunteerRequests = async () => {
     setVolunteerRequestsLoading(true);
     try {
@@ -90,9 +100,14 @@ export default function HomeDetailsPage({ params }) {
         }
       }
 
-      // Build URL with userId if available
-      const url = userId 
-        ? `/api/homes/${id}/notices?userId=${userId}`
+      let noticeUserId = userId;
+      if (!noticeUserId) {
+        noticeUserId = getNoticeClientId();
+      }
+
+      // Build URL with identifier if available
+      const url = noticeUserId 
+        ? `/api/homes/${id}/notices?userId=${noticeUserId}`
         : `/api/homes/${id}/notices`;
 
       const res = await fetch(url);
@@ -138,11 +153,16 @@ export default function HomeDetailsPage({ params }) {
         }
       }
 
+      let noticeUserId = userId;
+      if (!noticeUserId) {
+        noticeUserId = getNoticeClientId();
+      }
+
       // Call dismiss API
       const res = await fetch(`/api/homes/${id}/notices/${noticeId}/dismiss`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: noticeUserId }),
       });
 
       const data = await res.json();
