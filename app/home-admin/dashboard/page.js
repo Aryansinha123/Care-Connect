@@ -186,7 +186,20 @@ export default function HomeAdminDashboard() {
     const [selectedVolunteerRequest, setSelectedVolunteerRequest] = useState(null);
     const [requestVolunteers, setRequestVolunteers] = useState([]);
     const [volunteersLoading, setVolunteersLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'donations', or 'volunteers'
+    const [actionLoading, setActionLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'donations', 'volunteers', or 'notices'
+    const [notices, setNotices] = useState([]);
+    const [noticesLoading, setNoticesLoading] = useState(false);
+    const [newNotice, setNewNotice] = useState({
+        title: "",
+        content: "",
+        startAt: "",
+        endAt: "",
+        priority: "medium",
+        showOnce: false,
+        enabled: true,
+    });
+    const [editingNoticeId, setEditingNoticeId] = useState(null);
     const router = useRouter();
 
     async function fetchRequests(id, token) {
@@ -340,6 +353,140 @@ export default function HomeAdminDashboard() {
         }
     }, [isAuthenticated, activeTab, admin]);
 
+    // Fetch notices when notices tab is active
+    async function fetchNotices() {
+        if (!admin?.home?._id) return;
+        
+        setNoticesLoading(true);
+        try {
+            const res = await fetch(`/api/homes/${admin.home._id}/notices?admin=true`);
+            const data = await res.json();
+            if (data.success) {
+                setNotices(data.notices || []);
+            } else {
+                toast.error("Failed to fetch notices");
+            }
+        } catch (error) {
+            console.error("Error fetching notices:", error);
+            toast.error("Error loading notices");
+        } finally {
+            setNoticesLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        if (isAuthenticated && activeTab === 'notices' && admin?.home?._id) {
+            fetchNotices();
+        }
+    }, [isAuthenticated, activeTab, admin]);
+
+    async function handleCreateNotice(e) {
+        e.preventDefault();
+        if (!admin?.home?._id) return;
+
+        const token = localStorage.getItem("homeAdminToken");
+        const url = editingNoticeId 
+            ? `/api/homes/${admin.home._id}/notices/${editingNoticeId}`
+            : `/api/homes/${admin.home._id}/notices`;
+        const method = editingNoticeId ? "PUT" : "POST";
+
+        try {
+            setActionLoading(true);
+            const body = {
+                ...newNotice,
+                createdBy: admin._id || admin.id || "home-admin-placeholder",
+            };
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(body),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                toast.success(editingNoticeId ? "Notice updated!" : "Notice created!");
+                setNewNotice({
+                    title: "",
+                    content: "",
+                    startAt: "",
+                    endAt: "",
+                    priority: "medium",
+                    showOnce: false,
+                    enabled: true,
+                });
+                setEditingNoticeId(null);
+                fetchNotices();
+            } else {
+                toast.error(data.error || "Failed to save notice");
+            }
+        } catch (error) {
+            console.error("Error saving notice:", error);
+            toast.error("Error saving notice");
+        } finally {
+            setActionLoading(false);
+        }
+    }
+
+    async function handleDeleteNotice(noticeId) {
+        if (!window.confirm("Are you sure you want to delete this notice?")) return;
+        if (!admin?.home?._id) return;
+
+        const token = localStorage.getItem("homeAdminToken");
+        try {
+            setActionLoading(true);
+            const res = await fetch(`/api/homes/${admin.home._id}/notices/${noticeId}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                toast.success("Notice deleted!");
+                fetchNotices();
+            } else {
+                toast.error(data.error || "Failed to delete notice");
+            }
+        } catch (error) {
+            console.error("Error deleting notice:", error);
+            toast.error("Error deleting notice");
+        } finally {
+            setActionLoading(false);
+        }
+    }
+
+    function handleEditNotice(notice) {
+        setEditingNoticeId(notice._id);
+        setNewNotice({
+            title: notice.title,
+            content: notice.content,
+            startAt: notice.startAt ? new Date(notice.startAt).toISOString().slice(0, 16) : "",
+            endAt: notice.endAt ? new Date(notice.endAt).toISOString().slice(0, 16) : "",
+            priority: notice.priority,
+            showOnce: notice.showOnce,
+            enabled: notice.enabled,
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function cancelEditNotice() {
+        setEditingNoticeId(null);
+        setNewNotice({
+            title: "",
+            content: "",
+            startAt: "",
+            endAt: "",
+            priority: "medium",
+            showOnce: false,
+            enabled: true,
+        });
+    }
+
     async function handleCreateRequest(e) {
         e.preventDefault();
         const token = localStorage.getItem("homeAdminToken");
@@ -457,6 +604,16 @@ export default function HomeAdminDashboard() {
                         }`}
                     >
                         Volunteer Requests
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('notices')}
+                        className={`px-6 py-3 font-semibold transition-colors duration-200 ${
+                            activeTab === 'notices'
+                                ? 'text-purple-600 border-b-2 border-purple-600'
+                                : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                    >
+                        Notices
                     </button>
                 </div>
 
@@ -898,6 +1055,241 @@ export default function HomeAdminDashboard() {
                                     </div>
                                     <p className="text-gray-500 text-lg mb-2">No volunteer requests yet</p>
                                     <p className="text-gray-400 text-sm">Create your first volunteer request to get started</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'notices' && (
+                    /* Notices Tab */
+                    <div className="space-y-6">
+                        {/* Create/Edit Notice Card */}
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
+                            <div className="flex items-center mb-6">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center mr-4">
+                                    <span className="text-xl text-white">📢</span>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    {editingNoticeId ? "Edit Notice" : "Create New Notice"}
+                                </h3>
+                            </div>
+                            <form onSubmit={handleCreateNotice} className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Title *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter notice title..."
+                                        value={newNotice.title}
+                                        onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Content * (HTML allowed)</label>
+                                    <textarea
+                                        placeholder="Enter notice content..."
+                                        value={newNotice.content}
+                                        onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm min-h-[120px] resize-none text-black"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700">Start Date/Time (optional)</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={newNotice.startAt}
+                                            onChange={(e) => setNewNotice({ ...newNotice, startAt: e.target.value })}
+                                            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-700">End Date/Time (optional)</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={newNotice.endAt}
+                                            onChange={(e) => setNewNotice({ ...newNotice, endAt: e.target.value })}
+                                            className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Priority</label>
+                                    <select
+                                        value={newNotice.priority}
+                                        onChange={(e) => setNewNotice({ ...newNotice, priority: e.target.value })}
+                                        className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-colors duration-200 bg-white/50 backdrop-blur-sm text-black"
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                                <div className="flex gap-6">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={newNotice.showOnce}
+                                            onChange={(e) => setNewNotice({ ...newNotice, showOnce: e.target.checked })}
+                                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">Show once per user</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={newNotice.enabled}
+                                            onChange={(e) => setNewNotice({ ...newNotice, enabled: e.target.checked })}
+                                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">Enabled</span>
+                                    </label>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={actionLoading}
+                                        className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                    >
+                                        {actionLoading
+                                            ? editingNoticeId
+                                                ? "Updating..."
+                                                : "Creating..."
+                                            : editingNoticeId
+                                            ? "Update Notice"
+                                            : "Create Notice"}
+                                    </button>
+                                    {editingNoticeId && (
+                                        <button
+                                            type="button"
+                                            onClick={cancelEditNotice}
+                                            disabled={actionLoading}
+                                            className="bg-gray-500 text-white px-6 py-4 rounded-2xl hover:bg-gray-600 transition-all duration-200 font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Notices List Card */}
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border border-white/20">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-4">
+                                        <span className="text-xl text-white">📋</span>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-800">Your Notices</h3>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={fetchNotices}
+                                        disabled={noticesLoading}
+                                        className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                                    >
+                                        <RefreshCw 
+                                            className={`w-4 h-4 ${noticesLoading ? 'animate-spin' : ''}`} 
+                                        />
+                                        {noticesLoading ? 'Refreshing...' : 'Refresh'}
+                                    </button>
+                                    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                                        {notices.length} {notices.length === 1 ? 'Notice' : 'Notices'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {noticesLoading ? (
+                                <div className="text-center py-12">
+                                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                    <p className="text-gray-600">Loading notices...</p>
+                                </div>
+                            ) : notices.length > 0 ? (
+                                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                    {notices.map((notice) => {
+                                        const priorityColors = {
+                                            high: "bg-red-100 text-red-800 border-red-200",
+                                            medium: "bg-amber-100 text-amber-800 border-amber-200",
+                                            low: "bg-blue-100 text-blue-800 border-blue-200",
+                                        };
+                                        return (
+                                            <div
+                                                key={notice._id}
+                                                className={`group p-5 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg ${
+                                                    !notice.enabled ? "opacity-60" : ""
+                                                } ${priorityColors[notice.priority] || "bg-gray-50 border-gray-200"}`}
+                                            >
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <h4 className="font-bold text-lg">
+                                                                {notice.title}
+                                                            </h4>
+                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${priorityColors[notice.priority] || "bg-gray-200 text-gray-600"}`}>
+                                                                {notice.priority.toUpperCase()}
+                                                            </span>
+                                                            {!notice.enabled && (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                                                                    DISABLED
+                                                                </span>
+                                                            )}
+                                                            {notice.showOnce && (
+                                                                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                                                    SHOW ONCE
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div
+                                                            className="text-sm mb-3 prose prose-sm max-w-none"
+                                                            dangerouslySetInnerHTML={{ __html: notice.content }}
+                                                        />
+                                                        <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+                                                            {notice.startAt && (
+                                                                <span>
+                                                                    Starts: {new Date(notice.startAt).toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                            {notice.endAt && (
+                                                                <span>
+                                                                    Ends: {new Date(notice.endAt).toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                            <span>
+                                                                Created: {new Date(notice.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-3 pt-4 border-t border-gray-200 mt-4">
+                                                    <button
+                                                        onClick={() => handleEditNotice(notice)}
+                                                        disabled={actionLoading}
+                                                        className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white px-3 py-2 rounded-lg transition-colors duration-200 text-sm"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteNotice(notice._id)}
+                                                        disabled={actionLoading}
+                                                        className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white px-3 py-2 rounded-lg transition-colors duration-200 text-sm"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="text-3xl text-gray-400">📢</span>
+                                    </div>
+                                    <p className="text-gray-500 text-lg mb-2">No notices yet</p>
+                                    <p className="text-gray-400 text-sm">Create your first notice to get started</p>
                                 </div>
                             )}
                         </div>

@@ -10,7 +10,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import toast from "react-hot-toast";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Bell } from "lucide-react";
+import NoticeModal from "./components/NoticeModal";
 
 export default function HomeDetailsPage({ params }) {
   const { id } = params;
@@ -22,6 +23,11 @@ export default function HomeDetailsPage({ params }) {
   const [volunteerLoading, setVolunteerLoading] = useState(null); // Track which request is loading by ID
   const [volunteerRequestsLoading, setVolunteerRequestsLoading] = useState(false);
   const [userVolunteeredRequests, setUserVolunteeredRequests] = useState(new Set()); // Track which requests user has volunteered for
+  
+  // Notices state
+  const [notices, setNotices] = useState([]);
+  const [currentNotice, setCurrentNotice] = useState(null);
+  const [showNoticesPanel, setShowNoticesPanel] = useState(false);
   const router = useRouter();
 
   const fetchVolunteerRequests = async () => {
@@ -69,6 +75,92 @@ export default function HomeDetailsPage({ params }) {
     }
   };
 
+  // Fetch notices for this home
+  const fetchNotices = async () => {
+    try {
+      // Get userId from localStorage if user is logged in
+      let userId = null;
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          userId = user._id || user.id;
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+
+      // Build URL with userId if available
+      const url = userId 
+        ? `/api/homes/${id}/notices?userId=${userId}`
+        : `/api/homes/${id}/notices`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.success) {
+        // Filter out notices dismissed in localStorage (for anonymous users)
+        const filteredNotices = data.notices.filter((notice) => {
+          if (!notice.showOnce) return true;
+          const dismissedKey = `notice_dismissed_${notice._id}`;
+          return !localStorage.getItem(dismissedKey);
+        });
+        
+        setNotices(filteredNotices);
+        
+        // Show highest priority notice automatically if available
+        if (filteredNotices.length > 0 && !currentNotice) {
+          // Sort by priority: high > medium > low
+          const priorityOrder = { high: 3, medium: 2, low: 1 };
+          const sorted = [...filteredNotices].sort(
+            (a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]
+          );
+          setCurrentNotice(sorted[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching notices:", error);
+    }
+  };
+
+  // Handle notice dismissal
+  const handleDismissNotice = async (noticeId) => {
+    try {
+      // Get userId from localStorage if user is logged in
+      let userId = null;
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          userId = user._id || user.id;
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+
+      // Call dismiss API
+      const res = await fetch(`/api/homes/${id}/notices/${noticeId}/dismiss`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Store in localStorage for anonymous users
+        if (!userId) {
+          localStorage.setItem(`notice_dismissed_${noticeId}`, "1");
+        }
+        
+        // Remove from notices list
+        setNotices((prev) => prev.filter((n) => n._id !== noticeId));
+        setCurrentNotice(null);
+      }
+    } catch (error) {
+      console.error("Error dismissing notice:", error);
+    }
+  };
+
   // Fetch home details and requests
   useEffect(() => {
     async function fetchData() {
@@ -85,6 +177,9 @@ export default function HomeDetailsPage({ params }) {
 
         // Fetch volunteer requests
         await fetchVolunteerRequests();
+        
+        // Fetch notices
+        await fetchNotices();
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -182,12 +277,101 @@ export default function HomeDetailsPage({ params }) {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       {/* <Navbar /> */}
       
+      {/* Notice Modal */}
+      {currentNotice && (
+        <NoticeModal
+          notice={currentNotice}
+          homeId={id}
+          onClose={() => setCurrentNotice(null)}
+          onDismiss={handleDismissNotice}
+        />
+      )}
+      
+      {/* Notices Panel */}
+      {showNoticesPanel && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center rounded-t-2xl">
+              <h2 className="text-2xl font-bold text-gray-800">All Notices</h2>
+              <button
+                onClick={() => setShowNoticesPanel(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              {notices.length > 0 ? (
+                <div className="space-y-4">
+                  {notices.map((notice) => {
+                    const priorityColors = {
+                      high: "bg-red-100 text-red-800 border-red-200",
+                      medium: "bg-amber-100 text-amber-800 border-amber-200",
+                      low: "bg-blue-100 text-blue-800 border-blue-200",
+                    };
+                    return (
+                      <div
+                        key={notice._id}
+                        className={`p-4 rounded-lg border-2 ${priorityColors[notice.priority] || "bg-gray-100 border-gray-200"}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-bold text-lg">{notice.title}</h3>
+                          <span className="px-2 py-1 rounded text-xs font-semibold bg-white/50">
+                            {notice.priority.toUpperCase()}
+                          </span>
+                        </div>
+                        <div
+                          className="text-sm mb-3"
+                          dangerouslySetInnerHTML={{ __html: notice.content }}
+                        />
+                        {notice.endAt && (
+                          <p className="text-xs opacity-75">
+                            Active until {new Date(notice.endAt).toLocaleDateString()}
+                          </p>
+                        )}
+                        {notice.showOnce && (
+                          <p className="text-xs opacity-75 mt-1">
+                            ⓘ Shows once per user
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No active notices</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
-            {home.name}
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              {home.name}
+            </h1>
+            {notices.length > 0 && (
+              <button
+                onClick={() => setShowNoticesPanel(true)}
+                className="relative inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                title="View all notices"
+              >
+                <Bell className="w-5 h-5" />
+                <span className="hidden sm:inline">Notices</span>
+                {notices.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {notices.length}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
           <div className="w-32 h-1 bg-gradient-to-r from-purple-400 to-blue-400 mx-auto rounded-full"></div>
         </div>
 

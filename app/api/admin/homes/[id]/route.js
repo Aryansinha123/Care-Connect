@@ -36,11 +36,11 @@ export async function DELETE(req, { params }) {
     const deletedHome = await Home.findByIdAndDelete(id);
 
     if (!deletedHome) {
-      return NextResponse.json({ error: "Home not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Home not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Home deleted successfully" }, { status: 200 });
+    return NextResponse.json({ success: true, message: "Home deleted successfully" }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -122,13 +122,7 @@ export default function Footer() {
                   {/* <p className="text-xs text-purple-200">Lead Developer</p> */}
                 </div>
               </div>
-              <div className="flex items-center p-3 bg-white/10 rounded-lg backdrop-blur-sm hover:bg-white/15 transition-colors duration-300">
-                <span className="mr-3 text-xl">👩‍💻</span>
-                <div>
-                  <p className="font-medium">S Sharmilee Prusty</p>
-                  {/* <p className="text-xs text-purple-200">Co-Developer</p> */}
-                </div>
-              </div>
+              
             </div>
           </div>
         </div>
