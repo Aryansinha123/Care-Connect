@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, Save, X, Home, MapPin, FileText, Check, AlertCircle, Info, Phone, Image } from "lucide-react";
+import { Plus, Edit2, Trash2, Save, X, Home, MapPin, FileText, Check, AlertCircle, Info, Phone, Image, CreditCard, QrCode } from "lucide-react";
 
 // Toast Component
 const Toast = ({ message, type, onClose }) => {
@@ -61,6 +61,8 @@ export default function AdminDashboard() {
     contact: "",
     description: "",
     imageUrl: "",
+    upiVpa: "",
+    qrImageUrl: "",
   });
 
   // Toast management
@@ -118,7 +120,10 @@ export default function AdminDashboard() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          upi: { vpa: form.upiVpa, qrImageUrl: form.qrImageUrl },
+        }),
       });
 
       const data = await res.json();
@@ -130,6 +135,8 @@ export default function AdminDashboard() {
           contact: "",
           description: "",
           imageUrl: "",
+          upiVpa: "",
+          qrImageUrl: "",
         });
         setEditingId(null);
         setShowAddForm(false);
@@ -156,6 +163,8 @@ export default function AdminDashboard() {
       contact: home.contact,
       description: home.description,
       imageUrl: home.imageUrl,
+      upiVpa: home.upi?.vpa || "",
+      qrImageUrl: home.upi?.qrImageUrl || "",
     });
     setShowAddForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -172,6 +181,8 @@ export default function AdminDashboard() {
       contact: "",
       description: "",
       imageUrl: "",
+      upiVpa: "",
+      qrImageUrl: "",
     });
   };
 
@@ -327,6 +338,38 @@ export default function AdminDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                 </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-black mb-2 flex items-center gap-1">
+                  <CreditCard className="w-4 h-4" /> UPI ID
+                </label>
+                <input
+                  type="text"
+                  name="upiVpa"
+                  placeholder="Enter UPI ID (e.g. home@upi)"
+                  value={form.upiVpa}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-black mb-2 flex items-center gap-1">
+                  <QrCode className="w-4 h-4" /> QR Code Image URL
+                </label>
+                <input
+                  type="text"
+                  name="qrImageUrl"
+                  placeholder="Enter QR Code Image URL"
+                  value={form.qrImageUrl}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+                {form.qrImageUrl && (
+                  <div className="mt-2">
+                    <img src={form.qrImageUrl} alt="QR preview" className="w-28 h-28 object-contain rounded border border-gray-300 bg-white shadow" />
+                  </div>
+                )}
               </div>
               
               <div className="mb-4">

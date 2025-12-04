@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, User, Mail, Phone, MapPin, FileText, Upload, CheckCircle, AlertCircle, Image as ImageIcon, CreditCard, QrCode } from 'lucide-react';
 
@@ -23,6 +23,8 @@ export default function RegisterHomePage() {
   const [homePhotoPreview, setHomePhotoPreview] = useState(null);
   const [documentPreview, setDocumentPreview] = useState(null);
   const [qrImagePreview, setQrImagePreview] = useState(null);
+  const toastTimeout = useRef(null);
+  const [toast, setToast] = useState({ open: false, type: '', text: '' });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -178,10 +180,7 @@ export default function RegisterHomePage() {
       const result = await response.json();
 
       if (result.success) {
-        setMessage({ 
-          type: 'success', 
-          text: 'Registration request submitted successfully! We will review your request and get back to you soon.' 
-        });
+        showToast('Registration submitted successfully! We will review your request and get back to you soon.', 'success');
         // Reset form
         setFormData({
           homeName: '',
@@ -205,28 +204,42 @@ export default function RegisterHomePage() {
         const upiInput = document.querySelector('input[name="upiId"]');
         if (upiInput) upiInput.value = '';
       } else {
-        setMessage({ type: 'error', text: result.error || 'Failed to submit registration request' });
+        showToast(result.error || 'Failed to submit registration request', 'error');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      setMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+      setMessage({ type: '', text: '' });
+      showToast('An error occurred. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const showToast = (text, type = 'success') => {
+    setToast({ open: true, type, text });
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    toastTimeout.current = setTimeout(() => setToast({ open: false, type: '', text: '' }), 4000);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 flex items-center justify-center p-5 py-12">
-      <div className="max-w-4xl w-full bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden animate-fadeInUp">
-        <div className="p-8 md:p-12">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl mb-4">
-              <Building2 className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-tr from-[#6328e4] via-[#693ac0] to-[#7d35f7] flex items-center justify-center p-5 py-8 md:py-20">
+      {/* Toast notification area */}
+      {toast.open && (
+        <div className="fixed top-8 inset-x-0 z-50 flex items-center justify-center animate-fadeIn">
+          <div className={`px-6 py-4 rounded-2xl shadow-2xl bg-gradient-to-r ${toast.type==='success'? 'from-emerald-400 via-white/80 to-blue-100' : 'from-red-400 via-white/60 to-rose-100'} border-2 flex items-center gap-4 min-w-[320px] max-w-[90vw] backdrop-blur-lg`}>
+            {toast.type==='success'? <CheckCircle className="text-green-700 w-7 h-7"/> : <AlertCircle className="text-red-600 w-7 h-7"/>}
+            <span className="text-lg font-semibold text-gray-900 drop-shadow-sm">{toast.text}</span>
+          </div>
+        </div>
+      )}
+      <div className="max-w-4xl w-full bg-white/80 backdrop-blur-[6px] rounded-3xl shadow-[0_10px_32px_0_rgba(80,60,160,0.18)] overflow-hidden animate-fadeInUp border border-white/40">
+        <div className="p-8 md:p-14">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl shadow-lg mb-4">
+              <Building2 className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Register Your Home</h1>
-            <p className="text-gray-600">
-              Submit a registration request for your orphanage or old age home
-            </p>
+            <h1 className="text-5xl font-extrabold text-gray-800 mb-2 tracking-tight">Register Your Home</h1>
+            <p className="text-gray-500 text-lg font-medium">Submit a registration request for your care home or orphanage</p>
           </div>
 
           {message.text && (
@@ -457,7 +470,12 @@ export default function RegisterHomePage() {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fadeInUp { animation: fadeInUp 0.8s ease; }
+        .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.4,0.1,0.3,1.1); }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fadeIn { animation: fadeIn 0.35s both; }
       `}</style>
     </div>
   );
