@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, User, Mail, Phone, MapPin, FileText, Upload, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Building2, User, Mail, Phone, MapPin, FileText, Upload, CheckCircle, AlertCircle, Image as ImageIcon, CreditCard, QrCode } from 'lucide-react';
 
 export default function RegisterHomePage() {
   const router = useRouter();
@@ -17,9 +17,12 @@ export default function RegisterHomePage() {
     description: '',
     homePhotoFile: null,
     documentFile: null,
+    upiId: '',
+    qrImageFile: null,
   });
   const [homePhotoPreview, setHomePhotoPreview] = useState(null);
   const [documentPreview, setDocumentPreview] = useState(null);
+  const [qrImagePreview, setQrImagePreview] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,7 +72,7 @@ export default function RegisterHomePage() {
         return;
       }
       setFormData(prev => ({ ...prev, documentFile: file }));
-      
+
       // Create preview for images
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -80,6 +83,31 @@ export default function RegisterHomePage() {
       } else {
         setDocumentPreview(null);
       }
+    }
+  };
+
+  const handleQrImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type (images only)
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setMessage({ type: 'error', text: 'Please select an image file (JPEG, PNG)' });
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Image size should be less than 5MB' });
+        return;
+      }
+      setFormData(prev => ({ ...prev, qrImageFile: file }));
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQrImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -115,6 +143,19 @@ export default function RegisterHomePage() {
         });
       }
 
+      // Convert QR image to base64 if provided
+      let qrImage = null;
+      if (formData.qrImageFile) {
+        qrImage = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve(reader.result); // This will be a data URL (base64)
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(formData.qrImageFile);
+        });
+      }
+
       const response = await fetch('/api/home-requests', {
         method: 'POST',
         headers: {
@@ -129,6 +170,8 @@ export default function RegisterHomePage() {
           description: formData.description,
           homePhoto,
           documentUrl,
+          upiId: formData.upiId,
+          qrImage,
         }),
       });
 
@@ -149,12 +192,18 @@ export default function RegisterHomePage() {
           description: '',
           homePhotoFile: null,
           documentFile: null,
+          upiId: '',
+          qrImageFile: null,
         });
         setHomePhotoPreview(null);
         setDocumentPreview(null);
+        setQrImagePreview(null);
         // Clear file inputs
         const fileInputs = document.querySelectorAll('input[type="file"]');
         fileInputs.forEach(input => input.value = '');
+        // Clear UPI ID input
+        const upiInput = document.querySelector('input[name="upiId"]');
+        if (upiInput) upiInput.value = '';
       } else {
         setMessage({ type: 'error', text: result.error || 'Failed to submit registration request' });
       }
@@ -347,6 +396,47 @@ export default function RegisterHomePage() {
               {formData.documentFile && !documentPreview && (
                 <div className="mt-2 text-sm text-gray-600">
                   Selected: {formData.documentFile.name}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <CreditCard className="w-4 h-4 inline mr-2" />
+                UPI ID
+              </label>
+              <input
+                type="text"
+                name="upiId"
+                value={formData.upiId}
+                onChange={handleChange}
+                placeholder="Enter your UPI ID (e.g., yourname@upi)"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none text-black"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <QrCode className="w-4 h-4 inline mr-2" />
+                QR Code Image
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Upload your UPI QR code image (JPEG, PNG - Max 5MB)
+              </p>
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                onChange={handleQrImageChange}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none text-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+              />
+              {qrImagePreview && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                  <img
+                    src={qrImagePreview}
+                    alt="QR code preview"
+                    className="max-w-xs rounded-lg border-2 border-gray-200"
+                  />
                 </div>
               )}
             </div>

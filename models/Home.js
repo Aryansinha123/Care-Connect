@@ -7,6 +7,10 @@ const HomeSchema = new mongoose.Schema({
   contact: { type: String, required: true },
   description: { type: String },
   imageUrl: { type: String },
+  upi: {
+    vpa: { type: String },
+    qrImageUrl: { type: String }
+  },
   events: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],
 }, { timestamps: true });
 

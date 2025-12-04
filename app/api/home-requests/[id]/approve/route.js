@@ -97,6 +97,10 @@ export async function PUT(req, { params }) {
       contact: homeRequest.phone,
       description: homeRequest.description,
       imageUrl: homeRequest.homePhoto || null,
+      upi: {
+        vpa: homeRequest.upi?.vpa || null,
+        qrImageUrl: homeRequest.upi?.qrImageUrl || null
+      },
     });
 
     // Generate a random password for the admin

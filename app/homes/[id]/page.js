@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
+import DonateModal from "@/app/components/DonateModal";
 import toast from "react-hot-toast";
 import { RefreshCw, Bell } from "lucide-react";
 import NoticeModal from "./components/NoticeModal";
@@ -23,7 +24,10 @@ export default function HomeDetailsPage({ params }) {
   const [volunteerLoading, setVolunteerLoading] = useState(null); // Track which request is loading by ID
   const [volunteerRequestsLoading, setVolunteerRequestsLoading] = useState(false);
   const [userVolunteeredRequests, setUserVolunteeredRequests] = useState(new Set()); // Track which requests user has volunteered for
-  
+
+  // Donate modal state
+  const [showDonateModal, setShowDonateModal] = useState(false);
+
   // Notices state
   const [notices, setNotices] = useState([]);
   const [currentNotice, setCurrentNotice] = useState(null);
@@ -493,7 +497,10 @@ export default function HomeDetailsPage({ params }) {
               </div>
               
               <div className="space-y-4">
-                <button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-2xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5">
+                <button
+                  onClick={() => setShowDonateModal(true)}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-2xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
+                >
                   💰 Donate Money
                 </button>
                 
@@ -519,6 +526,14 @@ export default function HomeDetailsPage({ params }) {
           </div>
         </div>
       </div>
+
+      {/* Donate Modal */}
+      <DonateModal
+        isOpen={showDonateModal}
+        onClose={() => setShowDonateModal(false)}
+        homeId={id}
+        homeName={home?.name}
+      />
 
       {/* Volunteer Modal */}
       {showVolunteerModal && (

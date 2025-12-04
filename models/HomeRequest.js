@@ -30,6 +30,10 @@ const HomeRequestSchema = new mongoose.Schema({
   documentUrl: {
     type: String,
   },
+  upi: {
+    vpa: { type: String },
+    qrImageUrl: { type: String }
+  },
   status: {
     type: String,
     enum: ["Pending", "Approved", "Rejected"],

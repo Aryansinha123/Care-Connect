@@ -28,7 +28,7 @@ export async function POST(req) {
   try {
     await dbConnect();
     const body = await req.json();
-    const { homeName, adminName, email, phone, address, description, homePhoto, documentUrl } = body;
+    const { homeName, adminName, email, phone, address, description, homePhoto, documentUrl, upiId, qrImage } = body;
 
     // Validate required fields
     if (!homeName || !adminName || !email || !phone || !address || !homePhoto) {
@@ -61,6 +61,10 @@ export async function POST(req) {
       description,
       homePhoto: homePhoto || null,
       documentUrl: documentUrl || null,
+      upi: {
+        vpa: upiId || null,
+        qrImageUrl: qrImage || null
+      },
       status: "Pending",
     });
 
