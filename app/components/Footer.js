@@ -1,46 +1,3 @@
-// // components/Footer.js
-// export default function Footer() {
-//   return (
-//     <footer className="bg-gradient-to-r from-purple-600 to-pink-500 text-white py-8">
-//       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-//         {/* Platform Info */}
-//         <div>
-//           <h2 className="text-2xl font-bold mb-2">CareConnect</h2>
-//           <p className="text-sm text-purple-100">
-//             A platform bridging the gap between orphanages, old-age homes, and kind-hearted donors.  
-//             Together, we build a better future. 🌟
-//           </p>
-//         </div>
-
-//         {/* Quick Links */}
-//         <div>
-//           <h3 className="text-lg font-semibold mb-3">Quick Links</h3>
-//           <ul className="space-y-2 text-sm">
-//             <li><a href="#" className="hover:underline">About Us</a></li>
-//             <li><a href="#" className="hover:underline">Contact</a></li>
-//             <li><a href="#" className="hover:underline">Privacy Policy</a></li>
-//             <li><a href="#" className="hover:underline">Terms of Service</a></li>
-//           </ul>
-//         </div>
-
-//         {/* Developer Info */}
-//         <div>
-//           <h3 className="text-lg font-semibold mb-3">Developed By</h3>
-//           <p className="text-sm">👨‍💻 Aryan Sinha</p>
-//           <p className="text-sm">👩‍💻 S Sharmilee Prusty</p>
-          
-//         </div>
-//       </div>
-
-//       {/* Bottom Bar */}
-//       <div className="border-t border-purple-400 mt-6 pt-4 text-center text-xs text-purple-200">
-//        <p className="mt-3 text-xl text-purple-200">
-//             © {new Date().getFullYear()} CareConnect. All rights reserved.
-//           </p>
-//       </div>
-//     </footer>
-//   );
-// }
 
 export default function Footer() {
   return (
@@ -151,7 +108,6 @@ export default function Footer() {
             <p className="text-sm text-purple-200">
               © {new Date().getFullYear()} CareConnect. All rights reserved.
             </p>
-            <p className="text-2xl ">Still under development</p>
             <div className="flex items-center space-x-6 text-sm text-purple-200">
               <span className="flex items-center">
                 <span className="mr-1">🌍</span>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import VolunteerParticipation from "@/models/VolunteerParticipation";
 import VolunteerRequest from "@/models/VolunteerRequest";
@@ -19,7 +20,12 @@ function verifyUserToken(req) {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return { success: true, userId: decoded.id || decoded.userId };
+    return {
+      success: true,
+      userId: decoded.id || decoded.userId,
+      email: decoded.email,
+      name: decoded.name,
+    };
   } catch (error) {
     // Also check NextAuth session token
     try {
@@ -28,7 +34,12 @@ function verifyUserToken(req) {
         const decoded = jwt.decode(token);
         if (decoded && decoded.sub) {
           // NextAuth token
-          return { success: true, userId: decoded.sub };
+          return {
+            success: true,
+            userId: decoded.sub,
+            email: decoded.email,
+            name: decoded.name,
+          };
         }
       }
     } catch {}
@@ -62,10 +73,19 @@ export async function POST(req) {
 
     // Use userId from auth or request body
     const targetUserId = authResult.userId || userId;
+    const targetEmail = authResult.email;
     if (!targetUserId) {
       return NextResponse.json(
         { success: false, message: "User ID is required. Please login first." },
         { status: 401 }
+      );
+    }
+
+    // Validate volunteerRequestId
+    if (!mongoose.isValidObjectId(volunteerRequestId)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid volunteer request ID" },
+        { status: 400 }
       );
     }
 
@@ -86,10 +106,24 @@ export async function POST(req) {
     }
 
     // Check if user exists - try to find by _id or id
-    let user = await User.findById(targetUserId);
-    if (!user) {
-      // Try finding by email if userId is actually an email
+    let user = null;
+    if (mongoose.isValidObjectId(targetUserId)) {
+      user = await User.findById(targetUserId);
+    }
+    if (!user && targetUserId) {
+      // Try finding by email if userId is actually an email or external identifier
       user = await User.findOne({ email: targetUserId });
+    }
+    if (!user && targetEmail) {
+      user = await User.findOne({ email: targetEmail });
+    }
+    if (!user && targetEmail) {
+      // Create user on the fly for external providers (e.g., Google) if missing
+      user = await User.create({
+        name: authResult.name || "Volunteer",
+        email: targetEmail,
+        provider: "google",
+      });
     }
     if (!user) {
       return NextResponse.json(
@@ -162,9 +196,21 @@ export async function GET(req) {
 
     let query = {};
     if (userId) {
+      if (!mongoose.isValidObjectId(userId)) {
+        return NextResponse.json(
+          { success: true, participations: [] },
+          { status: 200 }
+        );
+      }
       query.userId = userId;
     }
     if (volunteerRequestId) {
+      if (!mongoose.isValidObjectId(volunteerRequestId)) {
+        return NextResponse.json(
+          { success: true, participations: [] },
+          { status: 200 }
+        );
+      }
       query.volunteerRequestId = volunteerRequestId;
     }
 

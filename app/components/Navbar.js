@@ -102,6 +102,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
@@ -139,10 +140,16 @@ export default function Navbar() {
       <div className="flex justify-between items-center max-w-7xl mx-auto">
         {/* Logo + Title */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">C</span>
+          <div className="relative h-14 w-32 shrink-0">
+            <Image
+              src="/image.png"
+              alt="CareConnect logo"
+              fill
+              className="object-contain mix-blend-screen scale-200"
+              priority
+            />
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
             CareConnect
           </h1>
         </div>

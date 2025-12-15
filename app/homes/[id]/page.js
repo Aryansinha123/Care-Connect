@@ -15,7 +15,6 @@ import { RefreshCw, Bell } from "lucide-react";
 import NoticeModal from "./components/NoticeModal";
 
 export default function HomeDetailsPage({ params }) {
-  const { id } = params;
   const [requests, setRequests] = useState([]);
   const [volunteerRequests, setVolunteerRequests] = useState([]);
   const [home, setHome] = useState(null);
@@ -24,6 +23,7 @@ export default function HomeDetailsPage({ params }) {
   const [volunteerLoading, setVolunteerLoading] = useState(null); // Track which request is loading by ID
   const [volunteerRequestsLoading, setVolunteerRequestsLoading] = useState(false);
   const [userVolunteeredRequests, setUserVolunteeredRequests] = useState(new Set()); // Track which requests user has volunteered for
+  const [id, setId] = useState(null);
 
   // Donate modal state
   const [showDonateModal, setShowDonateModal] = useState(false);
@@ -33,6 +33,23 @@ export default function HomeDetailsPage({ params }) {
   const [currentNotice, setCurrentNotice] = useState(null);
   const [showNoticesPanel, setShowNoticesPanel] = useState(false);
   const router = useRouter();
+
+  // Resolve params (it may be a promise in Next.js App Router)
+  useEffect(() => {
+    let mounted = true;
+    Promise.resolve(params)
+      .then((resolved) => {
+        if (!mounted) return;
+        setId(resolved?.id || null);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setId(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [params]);
 
   const getNoticeClientId = () => {
     if (typeof window === "undefined") return null;
@@ -45,6 +62,7 @@ export default function HomeDetailsPage({ params }) {
   };
 
   const fetchVolunteerRequests = async () => {
+    if (!id) return;
     setVolunteerRequestsLoading(true);
     try {
       const resVolunteer = await fetch(`/api/homes/${id}/volunteer-requests`);
@@ -91,6 +109,7 @@ export default function HomeDetailsPage({ params }) {
 
   // Fetch notices for this home
   const fetchNotices = async () => {
+    if (!id) return;
     try {
       // Get userId from localStorage if user is logged in
       let userId = null;
@@ -187,6 +206,7 @@ export default function HomeDetailsPage({ params }) {
 
   // Fetch home details and requests
   useEffect(() => {
+    if (!id) return;
     async function fetchData() {
       try {
         const resHome = await fetch(`/api/homes/${id}`);

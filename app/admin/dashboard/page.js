@@ -33,6 +33,20 @@ const AdminDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [requestVolunteers, setRequestVolunteers] = useState([]);
 
+  const formatDate = (value) => {
+    if (!value) return 'Not set';
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? 'Not set' : d.toLocaleDateString();
+  };
+
+  const formatTime = (value) => {
+    if (!value) return 'Not set';
+    const d = new Date(value);
+    return isNaN(d.getTime())
+      ? 'Not set'
+      : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   // Get admin name
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -783,9 +797,9 @@ const AdminDashboard = () => {
                                 Location: <span className="font-medium">{request.homeId?.location || 'Unknown'}</span>
                               </p>
                               <p className="text-sm text-slate-500 mt-1">
-                                Volunteers: <span className="font-medium">{request.volunteerCount || 0} / {request.numberOfVolunteersRequired}</span> • 
-                                Date: <span className="font-medium">{new Date(request.dateTime).toLocaleDateString()}</span> • 
-                                Time: <span className="font-medium">{new Date(request.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                Volunteers: <span className="font-medium">{request.volunteerCount || 0} / {request.numberOfVolunteersRequired || 0}</span> • 
+                                Date: <span className="font-medium">{formatDate(request?.dateTime)}</span> • 
+                                Time: <span className="font-medium">{formatTime(request?.dateTime)}</span>
                               </p>
                             </div>
                             <div className="flex flex-col items-end gap-2">
@@ -798,7 +812,7 @@ const AdminDashboard = () => {
                                     : 'bg-red-100 text-red-700 border border-red-200'
                                 }`}
                               >
-                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                {(request?.status || 'unknown').charAt(0).toUpperCase() + (request?.status || 'unknown').slice(1)}
                               </span>
                               {request.isFlagged && (
                                 <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">
