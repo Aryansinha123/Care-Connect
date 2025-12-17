@@ -38,9 +38,8 @@ export default function RegisterHomePage() {
     const file = e.target.files[0];
     if (file) {
       // Validate file type (images only)
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-      if (!validTypes.includes(file.type)) {
-        setMessage({ type: 'error', text: 'Please select an image file (JPEG, PNG)' });
+      if (!file.type.startsWith('image/')) {
+        setMessage({ type: 'error', text: 'Please select an image file' });
         return;
       }
       // Validate file size (max 5MB)
@@ -92,9 +91,8 @@ export default function RegisterHomePage() {
     const file = e.target.files[0];
     if (file) {
       // Validate file type (images only)
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-      if (!validTypes.includes(file.type)) {
-        setMessage({ type: 'error', text: 'Please select an image file (JPEG, PNG)' });
+      if (!file.type.startsWith('image/')) {
+        setMessage({ type: 'error', text: 'Please select an image file' });
         return;
       }
       // Validate file size (max 5MB)
@@ -130,6 +128,14 @@ export default function RegisterHomePage() {
           reader.onerror = reject;
           reader.readAsDataURL(formData.homePhotoFile);
         });
+      }
+      // Fallback: if a preview already exists (e.g., previously read), use it
+      const finalHomePhoto = homePhoto || homePhotoPreview;
+
+      if (!finalHomePhoto) {
+        setMessage({ type: 'error', text: 'Home photo is required. Please upload an image.' });
+        setLoading(false);
+        return;
       }
 
       // Convert document to base64 if provided
@@ -170,7 +176,7 @@ export default function RegisterHomePage() {
           phone: formData.phone,
           address: formData.address,
           description: formData.description,
-          homePhoto,
+          homePhoto: finalHomePhoto,
           documentUrl,
           upiId: formData.upiId,
           qrImage,
@@ -365,7 +371,7 @@ export default function RegisterHomePage() {
               </p>
               <input
                 type="file"
-                accept=".jpg,.jpeg,.png"
+                accept="image/*"
                 onChange={handleHomePhotoChange}
                 required
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none text-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
@@ -438,7 +444,7 @@ export default function RegisterHomePage() {
               </p>
               <input
                 type="file"
-                accept=".jpg,.jpeg,.png"
+                accept="image/*"
                 onChange={handleQrImageChange}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-600 focus:ring-4 focus:ring-purple-100 transition-all outline-none text-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
               />
