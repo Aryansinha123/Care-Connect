@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import NoticePopup from "./components/NoticePopup";
 export default function HomePage() {
   const [search, setSearch] = useState("");
@@ -190,10 +191,12 @@ export default function HomePage() {
                   style={{ transitionDelay: `${900 + index * 100}ms` }}
                 >
                   <div className="relative h-56 overflow-hidden">
-                    <img
+                    <Image
                       src={home.imageUrl || "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400&h=300&fit=crop"}
                       alt={home.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     <div className="absolute top-4 right-4">

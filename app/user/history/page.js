@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Navbar from "@/app/components/Navbar";
 
 export default function UserHistoryPage() {
@@ -11,23 +12,7 @@ export default function UserHistoryPage() {
   const [payments, setPayments] = useState([]);
   const router = useRouter();
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      router.push("/user/login");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/user/login");
-      return;
-    }
-
-    fetchHistory(token);
-  }, [router]);
-
-  const fetchHistory = async (token) => {
+  const fetchHistory = useCallback(async (token) => {
     try {
       setLoading(true);
 
@@ -53,7 +38,23 @@ export default function UserHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (!userData) {
+      router.push("/user/login");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/user/login");
+      return;
+    }
+
+    fetchHistory(token);
+  }, [router, fetchHistory]);
 
   if (loading) {
     return (
@@ -105,10 +106,13 @@ export default function UserHistoryPage() {
                   >
                     <div className="flex items-start gap-4">
                       {donation.imageUrl && (
-                        <img
+                        <Image
                           src={donation.imageUrl}
                           alt={donation.itemName}
-                          className="w-20 h-20 object-cover rounded-xl border-2 border-green-200"
+                          width={80}
+                          height={80}
+                          unoptimized
+                          className="object-cover rounded-xl border-2 border-green-200"
                         />
                       )}
                       <div className="flex-1">

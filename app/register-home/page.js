@@ -379,6 +379,7 @@ export default function RegisterHomePage() {
               {homePhotoPreview && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={homePhotoPreview} 
                     alt="Home photo preview" 
@@ -405,6 +406,7 @@ export default function RegisterHomePage() {
               {documentPreview && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={documentPreview} 
                     alt="Document preview" 
@@ -451,6 +453,7 @@ export default function RegisterHomePage() {
               {qrImagePreview && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={qrImagePreview}
                     alt="QR code preview"
